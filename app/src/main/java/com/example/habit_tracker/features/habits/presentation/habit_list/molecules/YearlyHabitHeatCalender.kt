@@ -80,11 +80,13 @@ fun YearlyHabitHeatCalender(
     }
 }
 
+@RequiresApi(Build.VERSION_CODES.O)
 private fun generateDateRange(start: LocalDate, end: LocalDate): List<LocalDate> {
     val days = ChronoUnit.DAYS.between(start, end).toInt()
     return (0..days).map { start.plusDays(it.toLong()) }
 }
 
+@RequiresApi(Build.VERSION_CODES.O)
 private fun weekStart(date: LocalDate): LocalDate =
     date.with(DayOfWeek.MONDAY)
 
@@ -94,6 +96,7 @@ private fun weekStart(date: LocalDate): LocalDate =
  * 2 = small chain
  * 3+ = strong streak segment
  */
+@RequiresApi(Build.VERSION_CODES.O)
 private fun computeStreakLevels(
     highlighted: Set<LocalDate>
 ): Map<LocalDate, Int> {
@@ -105,6 +108,7 @@ private fun computeStreakLevels(
 
     var streakList = mutableListOf<LocalDate>()
 
+    @RequiresApi(Build.VERSION_CODES.O)
     fun commitStreak() {
         if (streakList.isEmpty()) return
 
@@ -138,6 +142,7 @@ private fun computeStreakLevels(
     return result
 }
 
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 private fun WeekColumn(
     weekDays: List<LocalDate>,

@@ -76,6 +76,7 @@ fun HabitHeatmapLinearStrip(
 
 
 
+@RequiresApi(Build.VERSION_CODES.O)
 private fun generateDateRange(start: LocalDate, end: LocalDate): List<LocalDate> {
     val d = ChronoUnit.DAYS.between(start, end).toInt()
     return (0..d).map { start.plusDays(it.toLong()) }
@@ -86,6 +87,7 @@ private fun generateDateRange(start: LocalDate, end: LocalDate): List<LocalDate>
  * 2 = small streak
  * 3+ = strong chain
  */
+@RequiresApi(Build.VERSION_CODES.O)
 private fun computeStreakLevels(
     highlighted: Set<LocalDate>
 ): Map<LocalDate, Int> {

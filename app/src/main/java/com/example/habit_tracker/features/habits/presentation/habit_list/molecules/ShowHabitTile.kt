@@ -37,14 +37,17 @@ import java.time.LocalDate
 
 fun ShowHabitTile(
     habit: Habit,
-    onToggleCompleted: (LocalDate) -> Unit = {}
+    onToggleCompleted: (LocalDate) -> Unit = {},
+    onClick: () -> Unit = {}
 ) {
     val ROWS = 4
     val dates = remember { getDatesOfCurrentYear() }
     val TOTAL_ITEMS = dates.size
     val columns = (TOTAL_ITEMS + ROWS - 1) / ROWS
 
-    Column {
+    Column(
+        modifier = Modifier.clickable(onClick = onClick)
+    ){
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.fillMaxWidth()
@@ -88,7 +91,7 @@ fun ShowHabitTile(
                             val date = dates[itemIndex]
                             DayBox(
                                 color = HabitUtil.hexToColor(habit.color),
-                                size = 10,
+                                size = 16,
                                 date = date,
                                 isCompleted = habit.completedDates.contains(date.toString())
                             )
