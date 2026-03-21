@@ -55,15 +55,16 @@ fun HabitYearlyLists(
     ) {
         LazyColumn(
             modifier = Modifier
-                .padding(horizontal = 16.dp)
                 .fillMaxSize(),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             item(){
                 Spacer(modifier = Modifier.height(20.dp))
             }
-            items(habits.size
-            ) {index->
+            items(
+                count = habits.size,
+                key = { index -> habits[index].id }
+            ) { index ->
                 ShowHabitTile(
                     habits[index],
                     onToggleCompleted = { date->
@@ -106,7 +107,9 @@ fun HabitYearlyLists(
 
         ) {
             HabitDetailSheet(
-                habit =  selectedHabit!!,
+                habit = selectedHabit!!,
+                viewModel = viewModel,
+                onDismiss = { isHabitDetailSheetOpen = false }
             )
         }
 

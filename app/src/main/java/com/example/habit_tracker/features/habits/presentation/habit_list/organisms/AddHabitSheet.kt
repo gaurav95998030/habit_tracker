@@ -2,14 +2,17 @@ package com.example.habit_tracker.features.habits.presentation.habit_list.organi
 
 import AppTextFied
 import android.widget.Space
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
@@ -39,6 +42,9 @@ import com.example.habit_tracker.features.habits.presentation.habit_list.molecul
 import com.example.habit_tracker.features.habits.presentation.viewmodel.HabitViewModel
 import com.example.habit_tracker.ui.theme.AppTheme
 import androidx.compose.runtime.collectAsState
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.habit_tracker.features.habits.HabitUtil
 
@@ -51,6 +57,18 @@ fun AddHabitSheet(
     onDismiss: () -> Unit,
 
 ){
+    val keyboardOpen = isKeyboardOpen()
+    val focusManager = LocalFocusManager.current
+    val keyboardController = LocalSoftwareKeyboardController.current
+
+    BackHandler {
+        if (keyboardOpen) {
+            keyboardController?.hide()
+            focusManager.clearFocus()
+        } else {
+            onDismiss()
+        }
+    }
     val habitColors = listOf(
         Color(0xFFFF6F61),
         Color(0xFFFFA726),
@@ -199,4 +217,12 @@ fun AddHabitSheet(
         )
 
     }
+}
+
+
+@Composable
+fun isKeyboardOpen(): Boolean {
+    val ime = WindowInsets.ime
+    return ime.getBottom(LocalDensity.current) > 0
+
 }
