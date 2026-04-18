@@ -23,6 +23,9 @@ import com.example.habit_tracker.commons.ui.VerticalSpace
 import java.time.LocalDate
 import java.time.YearMonth
 
+private val CELL_SHAPE = RoundedCornerShape(8.dp)
+private val DOT_SHAPE = RoundedCornerShape(50)
+
 /* ----------------------------- PUBLIC API ----------------------------- */
 
 @RequiresApi(Build.VERSION_CODES.O)
@@ -68,8 +71,8 @@ fun HabitCalendar(
         HorizontalPager(
             state = pagerState,
             modifier = Modifier.fillMaxSize(),
-//pageSpacing = 16.dp,
-            contentPadding = PaddingValues(horizontal = 16.dp)
+            contentPadding = PaddingValues(horizontal = 16.dp),
+            key = { pageIndex -> months[pageIndex].toString() }
         ) { pageIndex ->
             MonthGrid(
                 month = months[pageIndex],
@@ -99,14 +102,10 @@ private fun MonthGrid(
     datesWithDots: Set<LocalDate>,
     onDateClick: (LocalDate) -> Unit
 ) {
-    // Only rebuild when month or date range changes, NOT when selection changes
-    val days = remember(month, startDate, endDate) {
-        buildMonthCells(
-            month = month,
-            startDate = startDate,
-            endDate = endDate
-        )
+    val weeks = remember(month, startDate, endDate) {
+        buildMonthCells(month, startDate, endDate).chunked(7)
     }
+    val lastWeekIndex = weeks.lastIndex
 
     Column(
         modifier = Modifier
@@ -118,39 +117,33 @@ private fun MonthGrid(
 
         VerticalSpace(16.dp)
 
-        // Day headers (S M T W T F S)
         DayHeaders()
 
         VerticalSpace(8.dp)
 
-        // Create rows with stable keys
-        days.chunked(7).forEachIndexed { weekIndex, week ->
-            key("$month-week-$weekIndex") {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceEvenly,
-                ) {
-                    week.forEachIndexed { dayIndex, day ->
-                        key("$month-$weekIndex-$dayIndex") {
-                            if (day.date == null) {
-                                Spacer(Modifier.size(40.dp))
-                            } else {
-                                DayCell(
-                                    date = day.date,
-                                    enabled = day.enabled,
-                                    isSelected = day.date in selectedDates,
-                                    hasDot = day.date in datesWithDots,
-                                    dateBoxColor = dateBoxColor,
-                                    dateBoxDotColor = dateBoxDotColor,
-                                    onClick = onDateClick
-                                )
-                            }
-                        }
+        weeks.forEachIndexed { weekIndex, week ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceEvenly,
+            ) {
+                week.forEach { day ->
+                    if (day.date == null) {
+                        Spacer(Modifier.size(40.dp))
+                    } else {
+                        DayCell(
+                            date = day.date,
+                            enabled = day.enabled,
+                            isSelected = day.date in selectedDates,
+                            hasDot = day.date in datesWithDots,
+                            dateBoxColor = dateBoxColor,
+                            dateBoxDotColor = dateBoxDotColor,
+                            onClick = onDateClick
+                        )
                     }
                 }
-                if (weekIndex < days.chunked(7).lastIndex) {
-                    VerticalSpace(12.dp)
-                }
+            }
+            if (weekIndex < lastWeekIndex) {
+                VerticalSpace(12.dp)
             }
         }
     }
@@ -192,20 +185,17 @@ private fun DayCell(
     dateBoxDotColor: Color,
     onClick: (LocalDate) -> Unit
 ) {
-    val boxShape = remember { RoundedCornerShape(8.dp) }
-    val dotShape = remember { RoundedCornerShape(50) }
-
     Box(
         modifier = Modifier
             .size(40.dp)
             .background(
                 color = if (isSelected) dateBoxColor else Color.Transparent,
-                shape = boxShape
+                shape = CELL_SHAPE
             )
             .border(
                 width = if (isSelected) 0.dp else 1.dp,
                 color = if (enabled) Color.Gray else Color.Transparent,
-                shape = boxShape
+                shape = CELL_SHAPE
             )
             .clickable(enabled = enabled) { onClick(date) },
         contentAlignment = Alignment.Center
@@ -227,7 +217,7 @@ private fun DayCell(
                 Box(
                     modifier = Modifier
                         .size(6.dp)
-                        .background(dateBoxDotColor, dotShape)
+                        .background(dateBoxDotColor, DOT_SHAPE)
                 )
             }
         }

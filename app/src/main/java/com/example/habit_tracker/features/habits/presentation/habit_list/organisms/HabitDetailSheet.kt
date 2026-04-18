@@ -55,9 +55,20 @@ fun HabitDetailSheet(
             runCatching { LocalDate.parse(dateStr) }.getOrNull()
         }.toSet()
     }
+    val bestStreak = remember(completedDatesSet) {
+        HabitUtil.maxStreak(completedDatesSet)
+    }
 
-    val startDate = LocalDate.of(LocalDate.now().year, 1, 1)
-    val endDate = LocalDate.of(LocalDate.now().year, 12, 31)
+    val yearRange = remember {
+        val year = LocalDate.now().year
+        LocalDate.of(year, 1, 1) to LocalDate.of(year, 12, 31)
+    }
+    val startDate = yearRange.first
+    val endDate = yearRange.second
+
+    val onDateToggle = remember(habit.id, viewModel) {
+        { date: LocalDate -> viewModel.updateHabit(habit.id, date) }
+    }
 
     Column(
         modifier = Modifier
@@ -99,7 +110,7 @@ fun HabitDetailSheet(
         Column(modifier = Modifier.padding(horizontal = 16.dp)) {
             ShowHabitTile(
                 habit = habit,
-                onToggleCompleted = { date -> viewModel.updateHabit(habit.id, date) },
+                onToggleCompleted = onDateToggle,
                 onClick = {}
             )
 
@@ -117,7 +128,7 @@ fun HabitDetailSheet(
                 )
                 StatCard(
                     label = "Best Streak",
-                    value = "${habit.maxStreak}",
+                    value = "$bestStreak",
                     accentColor = habitColor,
                     modifier = Modifier.weight(1f)
                 )
@@ -170,7 +181,7 @@ fun HabitDetailSheet(
                 dateBoxDotColor = habitColor,
                 selectedDates = completedDatesSet,
                 datesWithDots = emptySet(),
-                onDateClick = { date -> viewModel.updateHabit(habit.id, date) },
+                onDateClick = onDateToggle,
                 initialMonth = YearMonth.now()
             )
         }

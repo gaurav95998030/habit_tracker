@@ -11,6 +11,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -21,12 +22,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.tween
-import androidx.compose.foundation.gestures.ScrollableDefaults
-import androidx.compose.foundation.gestures.animateScrollBy
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -34,9 +30,7 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import kotlinx.coroutines.delay
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -46,6 +40,7 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -63,46 +58,50 @@ fun ShowHabitTile(
     onClick: () -> Unit = {}
 ) {
     val ROWS = 4
+    val LEADING_CONTEXT_COLS = 3
+    val CELL_DP = 14
+    val GAP_DP = 3
+    val today = LocalDate.now()
     val dates = remember { getDatesOfCurrentYear() }
-    val TOTAL_ITEMS = dates.size
-    val columns = (TOTAL_ITEMS + ROWS - 1) / ROWS
+    val columns = (dates.size + ROWS - 1) / ROWS
 
-    val listState = rememberLazyListState()
-
-    val targetColumn = remember(habit.completedDates, dates) {
-        val lastCompletedIndex = habit.completedDates
-            .mapNotNull { dateStr ->
-                dates.indexOfFirst { it.toString() == dateStr }.takeIf { it >= 0 }
-            }
-            .maxOrNull()
-        val todayIndex = dates.indexOfFirst { it == LocalDate.now() }.coerceAtLeast(0)
-        val targetIndex = lastCompletedIndex ?: todayIndex
-        (targetIndex / ROWS).coerceIn(0, columns - 1)
+    val todayIndex = remember(dates, today) {
+        dates.indexOfFirst { it == today }.coerceAtLeast(0)
     }
+    val todayColumn = todayIndex / ROWS
 
-    LaunchedEffect(habit.id, targetColumn, columns) {
-        if (columns > 0) {
-            delay(180)
-            listState.animateScrollToItem(targetColumn)
-            delay(16)
-            val layoutInfo = listState.layoutInfo
-            val itemInfo = layoutInfo.visibleItemsInfo.find { it.index == targetColumn }
-            if (itemInfo != null) {
-                val viewportWidth = layoutInfo.viewportSize.width
-                val scrollDelta = (itemInfo.size / 2 - viewportWidth / 2).toFloat()
-                listState.animateScrollBy(
-                    scrollDelta,
-                    animationSpec = tween(
-                        durationMillis = 380,
-                        easing = FastOutSlowInEasing
-                    )
-                )
-            }
+    val density = LocalDensity.current
+    val initialScrollPx = remember(todayColumn, density) {
+        with(density) {
+            ((todayColumn - LEADING_CONTEXT_COLS).coerceAtLeast(0) * (CELL_DP + GAP_DP))
+                .dp.toPx().toInt()
         }
     }
+    val scrollState = rememberScrollState(initial = initialScrollPx)
 
     val habitColor = remember(habit.color) { HabitUtil.hexToColor(habit.color) }
-    val isCompletedToday = habit.completedDates.contains(LocalDate.now().toString())
+    val completedLocalSet = remember(habit.completedDates) {
+        habit.completedDates
+            .mapNotNull { runCatching { LocalDate.parse(it) }.getOrNull() }
+            .toHashSet()
+    }
+    val isCompletedToday = today in completedLocalSet
+
+    val currentStreak = remember(completedLocalSet, today) {
+        var s = 0
+        var d = today
+        while (d in completedLocalSet) {
+            s++
+            d = d.minusDays(1)
+        }
+        s
+    }
+    val weekDone = remember(completedLocalSet, today) {
+        (0..6).count { today.minusDays(it.toLong()) in completedLocalSet }
+    }
+    val bestStreak = remember(completedLocalSet) {
+        HabitUtil.maxStreak(completedLocalSet)
+    }
 
     val checkBgColor by animateColorAsState(
         targetValue = if (isCompletedToday) habitColor else Color.Transparent,
@@ -218,47 +217,57 @@ fun ShowHabitTile(
                         .background(habitColor, RoundedCornerShape(2.dp))
                 )
                 Spacer(modifier = Modifier.width(6.dp))
+                if (currentStreak > 0) {
+                    Text(
+                        text = "🔥 $currentStreak day streak",
+                        style = AppTheme.textStyles.caption.copy(
+                            color = colors.textSecondary,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    )
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Text(
+                        text = "·",
+                        style = AppTheme.textStyles.caption.copy(color = colors.textTertiary)
+                    )
+                    Spacer(modifier = Modifier.width(10.dp))
+                }
                 Text(
-                    text = "${habit.completedDates.size} completions",
+                    text = "$weekDone / 7 this week",
                     style = AppTheme.textStyles.caption.copy(color = colors.textTertiary)
                 )
-                if (habit.maxStreak > 0) {
-                    Spacer(modifier = Modifier.width(12.dp))
+                if (bestStreak > currentStreak) {
+                    Spacer(modifier = Modifier.width(10.dp))
                     Text(
-                        text = "🔥 ${habit.maxStreak} best streak",
-                        style = AppTheme.textStyles.caption.copy(color = colors.textSecondary)
+                        text = "·  best $bestStreak",
+                        style = AppTheme.textStyles.caption.copy(color = colors.textTertiary)
                     )
                 }
             }
 
             Spacer(modifier = Modifier.height(10.dp))
 
-            LazyRow(
-                state = listState,
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(3.dp),
-                flingBehavior = ScrollableDefaults.flingBehavior()
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(scrollState),
+                horizontalArrangement = Arrangement.spacedBy(GAP_DP.dp)
             ) {
-                items(
-                    count = columns,
-                    key = { it },
-                    contentType = { 0 }
-                ) { columnIndex ->
-                    Column(
-                        verticalArrangement = Arrangement.spacedBy(3.dp)
-                    ) {
+                repeat(columns) { columnIndex ->
+                    Column(verticalArrangement = Arrangement.spacedBy(GAP_DP.dp)) {
                         repeat(ROWS) { rowIndex ->
                             val itemIndex = columnIndex * ROWS + rowIndex
-                            if (itemIndex < TOTAL_ITEMS) {
+                            if (itemIndex < dates.size) {
                                 val date = dates[itemIndex]
                                 DayBox(
                                     color = habitColor,
-                                    size = 14,
+                                    size = CELL_DP,
                                     date = date,
-                                    isCompleted = habit.completedDates.contains(date.toString())
+                                    isCompleted = date in completedLocalSet,
+                                    isToday = itemIndex == todayIndex
                                 )
                             } else {
-                                Spacer(modifier = Modifier.size(14.dp))
+                                Spacer(modifier = Modifier.size(CELL_DP.dp))
                             }
                         }
                     }

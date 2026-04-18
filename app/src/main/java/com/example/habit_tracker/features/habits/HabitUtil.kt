@@ -1,5 +1,7 @@
 package com.example.habit_tracker.features.habits
 
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.compose.ui.graphics.Color
 import java.time.LocalDate
 import java.time.Year
@@ -45,6 +47,20 @@ object HabitUtil{
 
 
     fun generateUniqueId(): String = UUID.randomUUID().toString()
+
+    @RequiresApi(Build.VERSION_CODES.O)
+    fun maxStreak(dates: Set<LocalDate>): Int {
+        if (dates.isEmpty()) return 0
+        var best = 0
+        var current = 0
+        var prev: LocalDate? = null
+        dates.sorted().forEach { d ->
+            current = if (prev?.plusDays(1) == d) current + 1 else 1
+            if (current > best) best = current
+            prev = d
+        }
+        return best
+    }
 
 
     fun colorToHex(color: Color, includeAlpha: Boolean = true): String {
