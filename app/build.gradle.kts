@@ -7,15 +7,19 @@ plugins {
     alias(libs.plugins.google.ksp)
 }
 
-
+// Release signing pulled from ~/.gradle/gradle.properties (outside the repo).
+// Set: RELEASE_STORE_FILE, RELEASE_STORE_PASSWORD, RELEASE_KEY_ALIAS, RELEASE_KEY_PASSWORD
+val releaseStoreFile = (project.findProperty("RELEASE_STORE_FILE") as String?)?.let { file(it) }
+val releaseStorePassword = project.findProperty("RELEASE_STORE_PASSWORD") as String?
+val releaseKeyAlias = project.findProperty("RELEASE_KEY_ALIAS") as String?
+val releaseKeyPassword = project.findProperty("RELEASE_KEY_PASSWORD") as String?
 
 android {
-    namespace = "com.example.habit_tracker"
+    namespace = "io.github.gaurav95998030.habittracker"
     compileSdk = 36
 
-
     defaultConfig {
-        applicationId = "com.example.habit_tracker"
+        applicationId = "io.github.gaurav95998030.habittracker"
         minSdk = 24
         targetSdk = 36
         versionCode = 1
@@ -24,10 +28,25 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    signingConfigs {
+        if (releaseStoreFile != null) {
+            create("release") {
+                storeFile = releaseStoreFile
+                storePassword = releaseStorePassword
+                keyAlias = releaseKeyAlias
+                keyPassword = releaseKeyPassword
+            }
+        }
+    }
+
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            if (releaseStoreFile != null) {
+                signingConfig = signingConfigs.getByName("release")
+            }
         }
     }
     compileOptions {
@@ -36,10 +55,17 @@ android {
     }
     kotlinOptions {
         jvmTarget = "11"
+        freeCompilerArgs += listOf(
+            "-opt-in=androidx.compose.foundation.layout.ExperimentalLayoutApi"
+        )
     }
     buildFeatures {
         compose = true
     }
+}
+
+ksp {
+    arg("room.schemaLocation", "$projectDir/schemas")
 }
 
 dependencies {
@@ -64,7 +90,7 @@ dependencies {
     // Coroutines for Firebase
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.0")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.8.0")
-    
+
     // Hilt
     implementation("com.google.dagger:hilt-android:2.57.1")
     ksp("com.google.dagger:hilt-compiler:2.57.1")

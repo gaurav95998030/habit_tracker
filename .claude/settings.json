@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(xargs -0 sed -i '' 's|com\\\\.example\\\\.habit_tracker|io.github.gaurav95998030.habittracker|g')",
+      "Bash(git rm *)",
+      "Bash(./gradlew assembleDebug)",
+      "Bash(chmod +x ./gradlew)",
+      "Bash(./gradlew assembleDebug -x processDebugGoogleServices)",
+      "Bash(./gradlew :app:compileDebugKotlin)",
+      "Bash(./gradlew assembleRelease)"
+    ]
+  }
+}

@@ -17,13 +17,27 @@
             </InsightsFilterSettings>
           </value>
         </entry>
+        <entry key="Android vitals">
+          <value>
+            <InsightsFilterSettings>
+              <option name="connection">
+                <ConnectionSetting>
+                  <option name="appId" value="com.stashfin.android" />
+                </ConnectionSetting>
+              </option>
+              <option name="signal" value="SIGNAL_UNSPECIFIED" />
+              <option name="timeIntervalDays" value="SEVEN_DAYS" />
+              <option name="visibilityType" value="ALL" />
+            </InsightsFilterSettings>
+          </value>
+        </entry>
         <entry key="Firebase Crashlytics">
           <value>
             <InsightsFilterSettings>
               <option name="connection">
                 <ConnectionSetting>
-                  <option name="appId" value="com.example.habit_tracker" />
-                  <option name="mobileSdkAppId" value="1:812392310566:android:271a0a947beb0d78ab83e7" />
+                  <option name="appId" value="io.github.gaurav95998030.habittracker" />
+                  <option name="mobileSdkAppId" value="1:812392310566:android:1f69edf00c35f519ab83e7" />
                   <option name="projectId" value="habittracker-ad5d6" />
                   <option name="projectNumber" value="812392310566" />
                 </ConnectionSetting>
