@@ -1,3 +1,3 @@
 <resources>
-    <string name="app_name">Habit_Tracker</string>
+    <!-- app_name is injected per product flavor via resValue() in app/build.gradle.kts -->
 </resources>

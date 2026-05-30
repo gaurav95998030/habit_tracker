@@ -40,15 +40,51 @@ android {
     }
 
     buildTypes {
+        debug {
+            // No applicationIdSuffix — debug & release of the same flavor share an
+            // applicationId, so Firebase only needs one registration per flavor.
+            // Trade-off: can't install debug + release of the same flavor side-by-side.
+            versionNameSuffix = "-DEBUG"
+            isMinifyEnabled = false
+            isShrinkResources = false
+            isDebuggable = true
+        }
         release {
             isMinifyEnabled = true
             isShrinkResources = true
+            isDebuggable = false
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            signingConfig = signingConfigs.getByName("debug")
             if (releaseStoreFile != null) {
                 signingConfig = signingConfigs.getByName("release")
             }
         }
     }
+
+    // Product flavors layer an "environment" dimension on top of debug/release.
+    // Final variants: devDebug, devRelease, prodDebug, prodRelease.
+    // Only `prod` keeps the original applicationId so the existing google-services.json
+    // continues to match — dev needs its package names registered in Firebase
+    // (or its own google-services.json under app/src/dev/) before Firebase calls work.
+    flavorDimensions += "environment"
+    productFlavors {
+        create("dev") {
+            dimension = "environment"
+            applicationIdSuffix = ".dev"
+            versionNameSuffix = "-dev"
+            resValue("string", "app_name", "Habit Tracker (Dev)")
+            buildConfigField("String", "API_BASE_URL", "\"https://dev.api.habittracker.example/\"")
+            buildConfigField("String", "ENVIRONMENT", "\"dev\"")
+        }
+        create("prod") {
+            dimension = "environment"
+            // No suffix — keeps applicationId == io.github.gaurav95998030.habittracker
+            resValue("string", "app_name", "Habit Tracker")
+            buildConfigField("String", "API_BASE_URL", "\"https://api.habittracker.example/\"")
+            buildConfigField("String", "ENVIRONMENT", "\"prod\"")
+        }
+    }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
@@ -61,6 +97,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 

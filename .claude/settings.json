@@ -7,7 +7,13 @@
       "Bash(chmod +x ./gradlew)",
       "Bash(./gradlew assembleDebug -x processDebugGoogleServices)",
       "Bash(./gradlew :app:compileDebugKotlin)",
-      "Bash(./gradlew assembleRelease)"
+      "Bash(./gradlew assembleRelease)",
+      "Bash(./gradlew :app:tasks --group=build)",
+      "Bash(./gradlew :app:assembleProdDebug)",
+      "Bash(mkdir -p /Users/gauravkumar/AndroidStudioProjects/habit_tracker/app/src/main/res/font && ls /Users/gauravkumar/AndroidStudioProjects/habit_tracker/app/src/main/res/font)"
+    ],
+    "additionalDirectories": [
+      "/Users/gauravkumar/AndroidStudioProjects/habit_tracker/app/src/main/res"
     ]
   }
 }
