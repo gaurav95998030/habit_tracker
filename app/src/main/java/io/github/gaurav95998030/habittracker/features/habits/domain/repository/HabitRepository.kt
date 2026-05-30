@@ -7,4 +7,5 @@ abstract class HabitRepository {
     abstract  suspend fun getHabits():List<Habit>
     abstract suspend fun updateHabit(habit: Habit)
     abstract suspend fun updateHabitCompletion(habit: Habit)
+    abstract suspend fun deleteHabit(habitId: String)
 }

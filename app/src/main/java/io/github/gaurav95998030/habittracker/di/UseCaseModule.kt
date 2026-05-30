@@ -2,6 +2,7 @@ package io.github.gaurav95998030.habittracker.di
 
 import io.github.gaurav95998030.habittracker.features.habits.domain.repository.HabitRepository
 import io.github.gaurav95998030.habittracker.features.habits.domain.usecases.AddHabitUseCase
+import io.github.gaurav95998030.habittracker.features.habits.domain.usecases.DeleteHabitUseCase
 import io.github.gaurav95998030.habittracker.features.habits.domain.usecases.GetHabitsUseCase
 import io.github.gaurav95998030.habittracker.features.habits.domain.usecases.ToggleHabitCompletionUseCase
 import io.github.gaurav95998030.habittracker.features.habits.domain.usecases.UpdateHabitUseCase
@@ -45,6 +46,14 @@ object UseCaseModule {
         habitRepository: HabitRepository
     ): UpdateHabitUseCase {
         return UpdateHabitUseCase(habitRepository)
+    }
+
+    @Provides
+    @ViewModelScoped
+    fun provideDeleteHabitUseCase(
+        habitRepository: HabitRepository
+    ): DeleteHabitUseCase {
+        return DeleteHabitUseCase(habitRepository)
     }
 }
 

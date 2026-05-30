@@ -9,6 +9,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import io.github.gaurav95998030.habittracker.features.habits.HabitUtil
 import io.github.gaurav95998030.habittracker.features.habits.domain.usecases.AddHabitUseCase
+import io.github.gaurav95998030.habittracker.features.habits.domain.usecases.DeleteHabitUseCase
 import io.github.gaurav95998030.habittracker.features.habits.domain.usecases.GetHabitsUseCase
 import io.github.gaurav95998030.habittracker.features.habits.domain.usecases.ToggleHabitCompletionUseCase
 import io.github.gaurav95998030.habittracker.features.habits.domain.usecases.UpdateHabitUseCase
@@ -28,7 +29,8 @@ class HabitViewModel @Inject constructor(
     private val addHabitUseCase: AddHabitUseCase,
     private val getHabitsUseCase: GetHabitsUseCase,
     private val toggleHabitCompletionUseCase: ToggleHabitCompletionUseCase,
-    private val updateHabitUseCase: UpdateHabitUseCase
+    private val updateHabitUseCase: UpdateHabitUseCase,
+    private val deleteHabitUseCase: DeleteHabitUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HabitState())
@@ -184,7 +186,29 @@ class HabitViewModel @Inject constructor(
         }
     }
 
+    fun deleteHabit(habit: Habit) {
+        _uiState.update { state ->
+            state.copy(habits = state.habits?.filterNot { it.id == habit.id } ?: emptyList())
+        }
+        viewModelScope.launch {
+            try {
+                deleteHabitUseCase.invoke(habit.id)
+            } catch (e: Exception) {
+                Log.e("HabitViewModel", "Error deleting habit", e)
+            }
+        }
+    }
 
+    fun restoreHabit(habit: Habit) {
+        viewModelScope.launch {
+            try {
+                addHabitUseCase.invoke(habit)
+                getHabits()
+            } catch (e: Exception) {
+                Log.e("HabitViewModel", "Error restoring habit", e)
+            }
+        }
+    }
 
 
 

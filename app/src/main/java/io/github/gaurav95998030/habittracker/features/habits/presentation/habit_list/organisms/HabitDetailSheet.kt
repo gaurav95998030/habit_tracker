@@ -21,6 +21,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
@@ -48,7 +49,8 @@ fun HabitDetailSheet(
     habit: Habit,
     viewModel: HabitViewModel,
     onDismiss: () -> Unit = {},
-    onEditClick: () -> Unit = {}
+    onEditClick: () -> Unit = {},
+    onDeleteClick: () -> Unit = {}
 ) {
     val scrollState = rememberScrollState()
     val habitColor = remember(habit.color) { HabitUtil.hexToColor(habit.color) }
@@ -112,6 +114,21 @@ fun HabitDetailSheet(
                         contentDescription = "Edit",
                         modifier = Modifier.size(20.dp),
                         tint = colors.textSecondary
+                    )
+                }
+                Box(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(colors.surface)
+                        .clickable(onClick = onDeleteClick),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Delete,
+                        contentDescription = "Delete",
+                        modifier = Modifier.size(20.dp),
+                        tint = colors.error
                     )
                 }
                 Box(

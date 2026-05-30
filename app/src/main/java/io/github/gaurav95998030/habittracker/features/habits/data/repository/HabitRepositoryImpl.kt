@@ -38,4 +38,8 @@ class HabitRepositoryImpl(
     override suspend fun updateHabitCompletion(habit: Habit) {
         dao.updateHabitCompletion(id = habit.id, completed = habit.completedDates)
     }
+
+    override suspend fun deleteHabit(habitId: String) {
+        dao.deleteHabit(habitId)
+    }
 }
