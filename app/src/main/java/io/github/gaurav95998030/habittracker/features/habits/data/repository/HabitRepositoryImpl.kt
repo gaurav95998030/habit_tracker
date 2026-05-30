@@ -25,7 +25,14 @@ class HabitRepositoryImpl(
         return habit.map { it.toDomain() }
     }
     override suspend fun updateHabit(habit: Habit) {
-        dao.updateHabit(habit.toEntity())
+        dao.updateHabitFields(
+            id = habit.id,
+            name = habit.name,
+            description = habit.description,
+            color = habit.color,
+            category = habit.category,
+            updatedDate = habit.updatedDate
+        )
     }
 
     override suspend fun updateHabitCompletion(habit: Habit) {

@@ -4,6 +4,7 @@ import io.github.gaurav95998030.habittracker.features.habits.domain.repository.H
 import io.github.gaurav95998030.habittracker.features.habits.domain.usecases.AddHabitUseCase
 import io.github.gaurav95998030.habittracker.features.habits.domain.usecases.GetHabitsUseCase
 import io.github.gaurav95998030.habittracker.features.habits.domain.usecases.ToggleHabitCompletionUseCase
+import io.github.gaurav95998030.habittracker.features.habits.domain.usecases.UpdateHabitUseCase
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -36,6 +37,14 @@ object UseCaseModule {
         habitRepository: HabitRepository
     ): ToggleHabitCompletionUseCase {
         return ToggleHabitCompletionUseCase(habitRepository)
+    }
+
+    @Provides
+    @ViewModelScoped
+    fun provideUpdateHabitUseCase(
+        habitRepository: HabitRepository
+    ): UpdateHabitUseCase {
+        return UpdateHabitUseCase(habitRepository)
     }
 }
 

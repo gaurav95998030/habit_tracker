@@ -21,6 +21,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -46,7 +47,8 @@ import java.time.YearMonth
 fun HabitDetailSheet(
     habit: Habit,
     viewModel: HabitViewModel,
-    onDismiss: () -> Unit = {}
+    onDismiss: () -> Unit = {},
+    onEditClick: () -> Unit = {}
 ) {
     val scrollState = rememberScrollState()
     val habitColor = remember(habit.color) { HabitUtil.hexToColor(habit.color) }
@@ -93,21 +95,40 @@ fun HabitDetailSheet(
                     fontWeight = FontWeight.SemiBold
                 )
             )
-            Box(
-                modifier = Modifier
-                    .size(40.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(colors.surface),
-                contentAlignment = Alignment.Center
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(
-                    imageVector = Icons.Default.Close,
-                    contentDescription = "Close",
+                Box(
                     modifier = Modifier
-                        .size(24.dp)
+                        .size(40.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(colors.surface)
+                        .clickable(onClick = onEditClick),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Edit,
+                        contentDescription = "Edit",
+                        modifier = Modifier.size(20.dp),
+                        tint = colors.textSecondary
+                    )
+                }
+                Box(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(colors.surface)
                         .clickable(onClick = onDismiss),
-                    tint = colors.textSecondary
-                )
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = "Close",
+                        modifier = Modifier.size(24.dp),
+                        tint = colors.textSecondary
+                    )
+                }
             }
         }
 

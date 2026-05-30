@@ -33,6 +33,9 @@ import androidx.compose.ui.unit.dp
 import io.github.gaurav95998030.habittracker.features.habits.presentation.habit_list.organisms.AddHabitSheet
 import io.github.gaurav95998030.habittracker.features.habits.presentation.habit_list.organisms.HabitYearlyLists
 import io.github.gaurav95998030.habittracker.features.habits.presentation.viewmodel.HabitViewModel
+import io.github.gaurav95998030.habittracker.ui.theme.AppColors
+import io.github.gaurav95998030.habittracker.ui.theme.AppTheme
+import androidx.compose.foundation.isSystemInDarkTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
 @RequiresApi(Build.VERSION_CODES.O)
@@ -56,7 +59,8 @@ fun HabitListScreen(
         floatingActionButton = {
             FloatingActionButton(
                 onClick = {
-                 showSheet = true;
+                    viewModel.resetForm()
+                    showSheet = true
                 }
 
             ) {
@@ -64,29 +68,42 @@ fun HabitListScreen(
             }
         },
         modifier = Modifier.fillMaxSize()
-    ) { _ ->
+    ) { paddingValues ->
         if(uiState.value.isLoading){
             Text("Habits loading")
         }else{
             HabitYearlyLists(
-                viewModel,
-                uiState.value.habits?:emptyList()
+                viewModel = viewModel,
+                habits = uiState.value.habits ?: emptyList(),
+                onEditHabit = { habit ->
+                    viewModel.startEditingHabit(habit)
+                    showSheet = true
+                }
             )
         }
 
     }
 
     if (showSheet) {
+        val sheetContainerColor = if (isSystemInDarkTheme()) AppTheme.colors.background else Color.White
         ModalBottomSheet(
-            onDismissRequest = { showSheet = false },
+            onDismissRequest = {
+                showSheet = false
+                viewModel.resetForm()
+            },
+            dragHandle = null,
             sheetState = sheetState,
+            containerColor = sheetContainerColor,
             modifier = Modifier.padding(0.dp),
             properties = ModalBottomSheetProperties(shouldDismissOnBackPress = false)
         ) {
             AddHabitSheet(
                 sheetState = sheetState,
                 viewModel = viewModel,
-                onDismiss = { showSheet = false }
+                onDismiss = {
+                    showSheet = false
+                    viewModel.resetForm()
+                }
             )
         }
     }

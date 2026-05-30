@@ -9,5 +9,6 @@ data class HabitFormState(
     val categoryError: String = "",
     val color: String = "", // or Int
     val colorError: String = "", // or Int
-    val isValid: Boolean = false
+    val isValid: Boolean = false,
+    val editingHabitId: String? = null
 )

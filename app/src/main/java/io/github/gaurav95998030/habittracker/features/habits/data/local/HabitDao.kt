@@ -16,6 +16,24 @@ interface HabitDao {
 
     @Query("""
     UPDATE habits
+    SET name = :name,
+        description = :description,
+        color = :color,
+        category = :category,
+        updatedDate = :updatedDate
+    WHERE id = :id
+""")
+    suspend fun updateHabitFields(
+        id: String,
+        name: String,
+        description: String,
+        color: String,
+        category: String,
+        updatedDate: String
+    )
+
+    @Query("""
+    UPDATE habits
     SET completedDates = :completed
     WHERE id = :id
 """)

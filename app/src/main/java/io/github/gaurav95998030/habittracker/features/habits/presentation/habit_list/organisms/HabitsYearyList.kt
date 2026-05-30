@@ -43,7 +43,8 @@ import java.time.LocalDate
 
 fun HabitYearlyLists(
     viewModel: HabitViewModel,
-    habits : List<Habit> = emptyList()
+    habits : List<Habit> = emptyList(),
+    onEditHabit: (Habit) -> Unit = {}
 ){
     val sheetState = rememberModalBottomSheetState(
         skipPartiallyExpanded = true,
@@ -141,6 +142,12 @@ fun HabitYearlyLists(
                     onDismiss = {
                         isHabitDetailSheetOpen = false
                         selectedHabitId = null
+                    },
+                    onEditClick = {
+                        val habitToEdit = selectedHabit
+                        isHabitDetailSheetOpen = false
+                        selectedHabitId = null
+                        onEditHabit(habitToEdit)
                     }
                 )
             }

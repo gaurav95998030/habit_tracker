@@ -11,6 +11,7 @@ import io.github.gaurav95998030.habittracker.features.habits.HabitUtil
 import io.github.gaurav95998030.habittracker.features.habits.domain.usecases.AddHabitUseCase
 import io.github.gaurav95998030.habittracker.features.habits.domain.usecases.GetHabitsUseCase
 import io.github.gaurav95998030.habittracker.features.habits.domain.usecases.ToggleHabitCompletionUseCase
+import io.github.gaurav95998030.habittracker.features.habits.domain.usecases.UpdateHabitUseCase
 import io.github.gaurav95998030.habittracker.features.habits.presentation.states.HabitFormState
 import io.github.gaurav95998030.habittracker.features.habits.presentation.states.HabitState
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -26,7 +27,8 @@ import javax.inject.Inject
 class HabitViewModel @Inject constructor(
     private val addHabitUseCase: AddHabitUseCase,
     private val getHabitsUseCase: GetHabitsUseCase,
-    private val toggleHabitCompletionUseCase: ToggleHabitCompletionUseCase
+    private val toggleHabitCompletionUseCase: ToggleHabitCompletionUseCase,
+    private val updateHabitUseCase: UpdateHabitUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HabitState())
@@ -34,52 +36,73 @@ class HabitViewModel @Inject constructor(
     var formState by mutableStateOf(HabitFormState())
         private set
 
-    fun addHabit(
-        onHabitAdded: () -> Unit = {}
+    private var editingHabitSnapshot: Habit? = null
+
+    fun startEditingHabit(habit: Habit) {
+        editingHabitSnapshot = habit
+        formState = HabitFormState(
+            name = habit.name,
+            description = habit.description,
+            category = habit.category,
+            color = habit.color,
+            isValid = habit.name.isNotBlank(),
+            editingHabitId = habit.id
+        )
+    }
+
+    fun resetForm() {
+        editingHabitSnapshot = null
+        formState = HabitFormState()
+    }
+
+    fun saveHabit(
+        onSaved: () -> Unit = {}
     ) {
-        Log.d("HabitViewModel", "addHabit $formState")
+        Log.d("HabitViewModel", "saveHabit $formState")
 
         viewModelScope.launch {
-           try{
-               _uiState.update {
-                   it.copy(
-                       isAddingHabit = true
-                   )
-               }
-               val habit = Habit(
-                   id = HabitUtil.generateUniqueId(),
-                   userId = "",
-                   name = formState.name,
-                   description = formState.description,
-                   completedDates = emptyList(),
-                   color = formState.color,
-                   category = formState.category,
-                   createdDate = Instant.now().toString(),
-                   updatedDate = Instant.now().toString(),
-                   maxStreak = 0,
-                   isActive = true
-               )
-               addHabitUseCase.invoke(habit)
-               _uiState.update {
-                   it.copy(
-                       isAddingHabit = false
-                   )
-               }
-               formState = HabitFormState()
-               //fetch habits again
-               getHabits()
-               onHabitAdded()
-           }catch (e: Exception) {
-               _uiState.update {
-                   it.copy(
-                       isAddingHabit = false
-                   )
-               }
-               Log.e("HabitViewModel", "Error adding habit", e)
-           }
+            try {
+                _uiState.update { it.copy(isAddingHabit = true) }
+
+                val editingId = formState.editingHabitId
+                val snapshot = editingHabitSnapshot
+                if (editingId != null && snapshot != null) {
+                    val updated = snapshot.copy(
+                        name = formState.name,
+                        description = formState.description,
+                        color = formState.color,
+                        category = formState.category,
+                        updatedDate = Instant.now().toString()
+                    )
+                    updateHabitUseCase.invoke(updated)
+                } else {
+                    val habit = Habit(
+                        id = HabitUtil.generateUniqueId(),
+                        userId = "",
+                        name = formState.name,
+                        description = formState.description,
+                        completedDates = emptyList(),
+                        color = formState.color,
+                        category = formState.category,
+                        createdDate = Instant.now().toString(),
+                        updatedDate = Instant.now().toString(),
+                        maxStreak = 0,
+                        isActive = true
+                    )
+                    addHabitUseCase.invoke(habit)
+                }
+
+                _uiState.update { it.copy(isAddingHabit = false) }
+                resetForm()
+                getHabits()
+                onSaved()
+            } catch (e: Exception) {
+                _uiState.update { it.copy(isAddingHabit = false) }
+                Log.e("HabitViewModel", "Error saving habit", e)
+            }
         }
-        //show condition
     }
+
 
 
     fun getHabits(){
@@ -168,50 +191,32 @@ class HabitViewModel @Inject constructor(
 
 
     fun onNameChanged(value: String) {
-        if(value.trim().isEmpty()){
-            formState = formState.copy(nameError = "Name cannot be empty", isValid = false)
-            return
-        }else{
-            formState = formState.copy(
-                name = value,
-                isValid = value.isNotBlank()
-            )
-        }
-
+        formState = formState.copy(
+            name = value,
+            nameError = if (value.trim().isEmpty()) "Name cannot be empty" else "",
+            isValid = value.isNotBlank()
+        )
     }
 
     fun onDescriptionChanged(value: String) {
-        if(value.trim().isEmpty()){
-            formState = formState.copy(descriptionError = "Description cannot be empty", isValid = false)
-            return
-        }else{
-            formState = formState.copy(
-                description = value,
-                isValid = value.isNotBlank()
-            )
-        }
+        formState = formState.copy(
+            description = value,
+            descriptionError = ""
+        )
     }
 
     fun onCategoryChanged(value: String) {
-        if(value.trim().isEmpty()){
-            formState = formState.copy(categoryError = "Category cannot be empty", isValid = false)
-            return
-        }else{
-            formState = formState.copy(
-                category = value,
-                isValid = value.isNotBlank()
-            )
-        }
+        formState = formState.copy(
+            category = value,
+            categoryError = ""
+        )
     }
 
     fun onColorSelected(value: String) {
-        if(value.trim().isEmpty()){
-            formState = formState.copy(colorError = "Color cannot be empty", isValid = false)
-            return
-        }else{
-            formState = formState.copy(color = value, isValid = value.isNotBlank())
-        }
-
+        formState = formState.copy(
+            color = value,
+            colorError = ""
+        )
     }
 
 
