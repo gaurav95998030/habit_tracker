@@ -66,12 +66,14 @@ fun HabitCalendar(
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .height(300.dp)
+            .height(440.dp)
     ) {
         HorizontalPager(
             state = pagerState,
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(horizontal = 16.dp),
+            pageSpacing = 16.dp,
+            beyondViewportPageCount = 1,
             key = { pageIndex -> months[pageIndex].toString() }
         ) { pageIndex ->
             MonthGrid(
@@ -107,6 +109,13 @@ private fun MonthGrid(
     }
     val lastWeekIndex = weeks.lastIndex
 
+    val monthSelected = remember(month, selectedDates) {
+        selectedDates.filterTo(HashSet()) { YearMonth.from(it) == month }
+    }
+    val monthDots = remember(month, datesWithDots) {
+        datesWithDots.filterTo(HashSet()) { YearMonth.from(it) == month }
+    }
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -133,8 +142,8 @@ private fun MonthGrid(
                         DayCell(
                             date = day.date,
                             enabled = day.enabled,
-                            isSelected = day.date in selectedDates,
-                            hasDot = day.date in datesWithDots,
+                            isSelected = day.date in monthSelected,
+                            hasDot = day.date in monthDots,
                             dateBoxColor = dateBoxColor,
                             dateBoxDotColor = dateBoxDotColor,
                             onClick = onDateClick
