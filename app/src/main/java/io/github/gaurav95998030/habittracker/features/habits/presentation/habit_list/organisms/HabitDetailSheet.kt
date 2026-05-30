@@ -181,7 +181,7 @@ fun HabitDetailSheet(
                 startDate = startDate,
                 endDate = endDate,
                 modifier = Modifier.fillMaxWidth(),
-                dateBoxColor = colors.surface,
+                dateBoxColor = habitColor,
                 dateBoxDotColor = habitColor,
                 selectedDates = completedDatesSet,
                 datesWithDots = emptySet(),

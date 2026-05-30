@@ -2,29 +2,45 @@ package io.github.gaurav95998030.habittracker.features.habits.presentation.habit
 
 import android.os.Build
 import androidx.annotation.RequiresApi
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowLeft
+import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import io.github.gaurav95998030.habittracker.commons.ui.VerticalSpace
+import io.github.gaurav95998030.habittracker.ui.theme.AppTheme
+import kotlinx.coroutines.launch
+import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.YearMonth
+import java.time.format.TextStyle as JavaTextStyle
+import java.util.Locale
 
-private val CELL_SHAPE = RoundedCornerShape(8.dp)
-private val DOT_SHAPE = RoundedCornerShape(50)
+private val CELL_SIZE = 40.dp
+private val CELL_SHAPE = RoundedCornerShape(12.dp)
+private val DOT_SHAPE = CircleShape
 
 /* ----------------------------- PUBLIC API ----------------------------- */
 
@@ -35,23 +51,21 @@ fun HabitCalendar(
     startDate: LocalDate,
     endDate: LocalDate,
     modifier: Modifier = Modifier,
-    dateBoxColor: Color = Color(0xFF2A2A2A),
-    dateBoxDotColor: Color = Color(0xFFE57373),
+    dateBoxColor: Color = AppTheme.colors.primary,
+    dateBoxDotColor: Color = AppTheme.colors.primary,
     selectedDates: Set<LocalDate> = emptySet(),
     datesWithDots: Set<LocalDate> = emptySet(),
     onDateClick: (LocalDate) -> Unit = {},
-    initialMonth: YearMonth? = null // Optional: specify which month to show initially
+    initialMonth: YearMonth? = null
 ) {
     val months = remember(startDate, endDate) {
         generateMonthRange(startDate, endDate)
     }
 
-    // Find initial page index
     val initialPage = remember(months, initialMonth) {
         if (initialMonth != null) {
             months.indexOf(initialMonth).coerceAtLeast(0)
         } else {
-            // Default to current month or last month if current is not in range
             val currentMonth = YearMonth.now()
             val index = months.indexOf(currentMonth)
             if (index >= 0) index else months.lastIndex.coerceAtLeast(0)
@@ -62,17 +76,36 @@ fun HabitCalendar(
         initialPage = initialPage,
         pageCount = { months.size }
     )
+    val scope = rememberCoroutineScope()
 
-    Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .height(440.dp)
+    Column(
+        modifier = modifier.fillMaxWidth()
     ) {
+        MonthNavigator(
+            month = months.getOrNull(pagerState.currentPage) ?: YearMonth.now(),
+            canGoPrev = pagerState.currentPage > 0,
+            canGoNext = pagerState.currentPage < months.lastIndex,
+            onPrev = {
+                scope.launch { pagerState.animateScrollToPage(pagerState.currentPage - 1) }
+            },
+            onNext = {
+                scope.launch { pagerState.animateScrollToPage(pagerState.currentPage + 1) }
+            }
+        )
+
+        VerticalSpace(12.dp)
+
+        DayHeaders()
+
+        VerticalSpace(4.dp)
+
         HorizontalPager(
             state = pagerState,
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(horizontal = 16.dp),
-            pageSpacing = 16.dp,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(360.dp),
+            contentPadding = PaddingValues(horizontal = 4.dp),
+            pageSpacing = 12.dp,
             beyondViewportPageCount = 1,
             key = { pageIndex -> months[pageIndex].toString() }
         ) { pageIndex ->
@@ -87,6 +120,75 @@ fun HabitCalendar(
                 onDateClick = onDateClick
             )
         }
+    }
+}
+
+/* ----------------------------- MONTH NAV ----------------------------- */
+
+@RequiresApi(Build.VERSION_CODES.O)
+@Composable
+private fun MonthNavigator(
+    month: YearMonth,
+    canGoPrev: Boolean,
+    canGoNext: Boolean,
+    onPrev: () -> Unit,
+    onNext: () -> Unit
+) {
+    val colors = AppTheme.colors
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        NavChevron(
+            icon = Icons.AutoMirrored.Rounded.KeyboardArrowLeft,
+            contentDescription = "Previous month",
+            enabled = canGoPrev,
+            onClick = onPrev
+        )
+        Text(
+            text = "${month.month.getDisplayName(JavaTextStyle.FULL, Locale.getDefault())} ${month.year}",
+            style = AppTheme.textStyles.titleMedium.copy(
+                color = colors.textPrimary,
+                fontWeight = FontWeight.SemiBold
+            ),
+            textAlign = TextAlign.Center,
+            modifier = Modifier.weight(1f)
+        )
+        NavChevron(
+            icon = Icons.AutoMirrored.Rounded.KeyboardArrowRight,
+            contentDescription = "Next month",
+            enabled = canGoNext,
+            onClick = onNext
+        )
+    }
+}
+
+@Composable
+private fun NavChevron(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    contentDescription: String,
+    enabled: Boolean,
+    onClick: () -> Unit
+) {
+    val colors = AppTheme.colors
+    val tint by animateColorAsState(
+        targetValue = if (enabled) colors.textPrimary else colors.textTertiary.copy(alpha = 0.4f),
+        label = "chevron-tint"
+    )
+    Box(
+        modifier = Modifier
+            .size(36.dp)
+            .clip(CircleShape)
+            .clickable(enabled = enabled, onClick = onClick),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = contentDescription,
+            tint = tint
+        )
     }
 }
 
@@ -115,35 +217,29 @@ private fun MonthGrid(
     val monthDots = remember(month, datesWithDots) {
         datesWithDots.filterTo(HashSet()) { YearMonth.from(it) == month }
     }
+    val today = remember { LocalDate.now() }
 
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(8.dp),
+            .padding(horizontal = 4.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        MonthTitle(month)
-
-        VerticalSpace(16.dp)
-
-        DayHeaders()
-
-        VerticalSpace(8.dp)
-
         weeks.forEachIndexed { weekIndex, week ->
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly,
+                horizontalArrangement = Arrangement.SpaceEvenly
             ) {
                 week.forEach { day ->
                     if (day.date == null) {
-                        Spacer(Modifier.size(40.dp))
+                        Spacer(Modifier.size(CELL_SIZE))
                     } else {
                         DayCell(
                             date = day.date,
                             enabled = day.enabled,
                             isSelected = day.date in monthSelected,
                             hasDot = day.date in monthDots,
+                            isToday = day.date == today,
                             dateBoxColor = dateBoxColor,
                             dateBoxDotColor = dateBoxDotColor,
                             onClick = onDateClick
@@ -152,7 +248,7 @@ private fun MonthGrid(
                 }
             }
             if (weekIndex < lastWeekIndex) {
-                VerticalSpace(12.dp)
+                VerticalSpace(8.dp)
             }
         }
     }
@@ -162,19 +258,24 @@ private fun MonthGrid(
 
 @Composable
 private fun DayHeaders() {
+    val colors = AppTheme.colors
     val dayNames = listOf("S", "M", "T", "W", "T", "F", "S")
 
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 4.dp),
         horizontalArrangement = Arrangement.SpaceEvenly
     ) {
-        dayNames.forEach { dayName ->
+        dayNames.forEachIndexed { index, dayName ->
+            val isWeekend = index == 0 || index == 6
             Text(
                 text = dayName,
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Medium,
-                color = Color.Gray,
-                modifier = Modifier.size(40.dp),
+                style = AppTheme.textStyles.labelSmall.copy(
+                    color = if (isWeekend) colors.textTertiary else colors.textSecondary,
+                    fontWeight = FontWeight.SemiBold
+                ),
+                modifier = Modifier.size(CELL_SIZE),
                 textAlign = TextAlign.Center
             )
         }
@@ -190,23 +291,46 @@ private fun DayCell(
     enabled: Boolean,
     isSelected: Boolean,
     hasDot: Boolean,
+    isToday: Boolean,
     dateBoxColor: Color,
     dateBoxDotColor: Color,
     onClick: (LocalDate) -> Unit
 ) {
+    val colors = AppTheme.colors
+
+    val targetBg = when {
+        isSelected -> dateBoxColor
+        isToday && enabled -> dateBoxColor.copy(alpha = 0.12f)
+        else -> Color.Transparent
+    }
+    val bgColor by animateColorAsState(targetValue = targetBg, label = "cell-bg")
+
+    val targetText = when {
+        !enabled -> colors.textTertiary.copy(alpha = 0.5f)
+        isSelected -> contrastOn(dateBoxColor)
+        isToday -> dateBoxColor
+        else -> colors.textPrimary
+    }
+    val textColor by animateColorAsState(targetValue = targetText, label = "cell-text")
+
+    val borderWidth by animateDpAsState(
+        targetValue = if (isToday && !isSelected) 1.5.dp else 0.dp,
+        label = "cell-border"
+    )
+
+    val interactionSource = remember { MutableInteractionSource() }
+
     Box(
         modifier = Modifier
-            .size(40.dp)
-            .background(
-                color = if (isSelected) dateBoxColor else Color.Transparent,
-                shape = CELL_SHAPE
-            )
-            .border(
-                width = if (isSelected) 0.dp else 1.dp,
-                color = if (enabled) Color.Gray else Color.Transparent,
-                shape = CELL_SHAPE
-            )
-            .clickable(enabled = enabled) { onClick(date) },
+            .size(CELL_SIZE)
+            .clip(CELL_SHAPE)
+            .background(color = bgColor, shape = CELL_SHAPE)
+            .border(width = borderWidth, color = dateBoxColor, shape = CELL_SHAPE)
+            .clickable(
+                interactionSource = interactionSource,
+                indication = LocalIndication.current,
+                enabled = enabled
+            ) { onClick(date) },
         contentAlignment = Alignment.Center
     ) {
         Column(
@@ -215,17 +339,22 @@ private fun DayCell(
         ) {
             Text(
                 text = date.dayOfMonth.toString(),
-                fontSize = 14.sp,
-                textAlign = TextAlign.Center,
-                color = if (enabled) Color.White else Color.DarkGray,
-                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                style = AppTheme.textStyles.bodyMedium.copy(
+                    color = textColor,
+                    fontWeight = when {
+                        isSelected -> FontWeight.Bold
+                        isToday -> FontWeight.SemiBold
+                        else -> FontWeight.Medium
+                    }
+                ),
+                textAlign = TextAlign.Center
             )
 
-            if (hasDot) {
+            if (hasDot && !isSelected) {
                 Spacer(Modifier.height(2.dp))
                 Box(
                     modifier = Modifier
-                        .size(6.dp)
+                        .size(5.dp)
                         .background(dateBoxDotColor, DOT_SHAPE)
                 )
             }
@@ -242,13 +371,18 @@ data class DayUiModel(
 
 /* ----------------------------- HELPERS ----------------------------- */
 
+private fun contrastOn(background: Color): Color {
+    val luminance = 0.299 * background.red + 0.587 * background.green + 0.114 * background.blue
+    return if (luminance > 0.55) Color(0xFF111111) else Color.White
+}
+
 @RequiresApi(Build.VERSION_CODES.O)
 private fun buildMonthCells(
     month: YearMonth,
     startDate: LocalDate,
     endDate: LocalDate
 ): List<DayUiModel> {
-    val firstDayIndex = month.atDay(1).dayOfWeek.value % 7
+    val firstDayIndex = month.atDay(1).dayOfWeek.sundayBasedIndex()
     val daysInMonth = month.lengthOfMonth()
     val totalCells = ((firstDayIndex + daysInMonth + 6) / 7) * 7
 
@@ -267,6 +401,9 @@ private fun buildMonthCells(
 }
 
 @RequiresApi(Build.VERSION_CODES.O)
+private fun DayOfWeek.sundayBasedIndex(): Int = value % 7
+
+@RequiresApi(Build.VERSION_CODES.O)
 private fun generateMonthRange(
     start: LocalDate,
     end: LocalDate
@@ -280,17 +417,4 @@ private fun generateMonthRange(
         cursor = cursor.plusMonths(1)
     }
     return months
-}
-
-/* ----------------------------- STATIC UI ----------------------------- */
-
-@RequiresApi(Build.VERSION_CODES.O)
-@Composable
-private fun MonthTitle(month: YearMonth) {
-    Text(
-        text = "${month.month.name.lowercase().replaceFirstChar { it.uppercase() }} ${month.year}",
-        fontSize = 20.sp,
-        fontWeight = FontWeight.Bold,
-        color = Color.White
-    )
 }
