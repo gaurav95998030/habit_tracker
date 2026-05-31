@@ -31,6 +31,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import io.github.gaurav95998030.habittracker.commons.ui.PullToRefresh
 import io.github.gaurav95998030.habittracker.features.habits.domain.model.Habit
 import io.github.gaurav95998030.habittracker.features.habits.presentation.habit_list.molecules.ShimmerHabitList
 import io.github.gaurav95998030.habittracker.features.habits.presentation.habit_list.organisms.AddHabitSheet
@@ -110,15 +111,20 @@ fun HabitListScreen(
         if(uiState.value.isLoading){
             ShimmerHabitList()
         }else{
-            HabitYearlyLists(
-                viewModel = viewModel,
-                habits = uiState.value.habits ?: emptyList(),
-                onEditHabit = { habit ->
-                    viewModel.startEditingHabit(habit)
-                    showSheet = true
-                },
-                onDeleteHabit = onDeleteHabit
-            )
+            PullToRefresh(
+                onRefresh = { viewModel.refreshHabits() },
+                modifier = Modifier.fillMaxSize().padding(paddingValues)
+            ) {
+                HabitYearlyLists(
+                    viewModel = viewModel,
+                    habits = uiState.value.habits ?: emptyList(),
+                    onEditHabit = { habit ->
+                        viewModel.startEditingHabit(habit)
+                        showSheet = true
+                    },
+                    onDeleteHabit = onDeleteHabit
+                )
+            }
         }
 
     }

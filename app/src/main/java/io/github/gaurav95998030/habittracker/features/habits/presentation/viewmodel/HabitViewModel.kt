@@ -155,6 +155,17 @@ class HabitViewModel @Inject constructor(
         }
     }
 
+    // Suspending refresh used by pull-to-refresh. Does not flip `isLoading` so the
+    // shimmer placeholder doesn't replace the list while the PTR indicator is shown.
+    suspend fun refreshHabits() {
+        try {
+            val habits = getHabitsUseCase.invoke()
+            _uiState.update { it.copy(habits = habits) }
+        } catch (e: Exception) {
+            Log.e("HabitViewModel", "Error refreshing habits", e)
+        }
+    }
+
 
     fun updateHabit(habitId: String, date: LocalDate) {
         val dateStr = date.toString()

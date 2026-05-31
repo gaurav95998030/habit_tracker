@@ -14,7 +14,8 @@
       "Read(//Users/gaurav95998030/AndroidStudioProjects/habit_tracker/app/src/main/java/io/github/gaurav95998030/habittracker/ui/theme/**)",
       "Bash(./gradlew :app:assembleProdRelease)",
       "Bash(./gradlew :app:assembleDevDebug)",
-      "Bash(./gradlew :app:lintDevDebug)"
+      "Bash(./gradlew :app:lintDevDebug)",
+      "Bash(./gradlew :app:compileProdDebugKotlin)"
     ],
     "additionalDirectories": [
       "/Users/gauravkumar/AndroidStudioProjects/habit_tracker/app/src/main/res"

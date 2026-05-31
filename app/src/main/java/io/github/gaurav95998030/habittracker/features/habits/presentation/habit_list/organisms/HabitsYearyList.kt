@@ -92,7 +92,6 @@ fun HabitYearlyLists(
         modifier = Modifier
             .padding(horizontal = 16.dp)
             .fillMaxSize()
-            .statusBarsPadding()
             .navigationBarsPadding()
     ) {
         LazyColumn(
