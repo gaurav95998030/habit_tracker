@@ -2,14 +2,8 @@ package io.github.gaurav95998030.habittracker.features.habits.presentation.habit
 
 import android.os.Build
 import androidx.annotation.RequiresApi
-import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -25,7 +19,6 @@ import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
-import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -35,11 +28,11 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import io.github.gaurav95998030.habittracker.features.habits.domain.model.Habit
+import io.github.gaurav95998030.habittracker.features.habits.presentation.habit_list.molecules.ShimmerHabitList
 import io.github.gaurav95998030.habittracker.features.habits.presentation.habit_list.organisms.AddHabitSheet
 import io.github.gaurav95998030.habittracker.features.habits.presentation.habit_list.organisms.HabitYearlyLists
 import io.github.gaurav95998030.habittracker.features.habits.presentation.viewmodel.HabitViewModel
@@ -115,12 +108,7 @@ fun HabitListScreen(
         modifier = Modifier.fillMaxSize()
     ) { paddingValues ->
         if(uiState.value.isLoading){
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ){
-                Text("Habits loading")
-            }
+            ShimmerHabitList()
         }else{
             HabitYearlyLists(
                 viewModel = viewModel,
