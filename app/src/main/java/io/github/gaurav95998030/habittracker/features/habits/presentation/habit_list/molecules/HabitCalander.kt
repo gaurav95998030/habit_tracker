@@ -385,6 +385,7 @@ private fun buildMonthCells(
     val firstDayIndex = month.atDay(1).dayOfWeek.sundayBasedIndex()
     val daysInMonth = month.lengthOfMonth()
     val totalCells = ((firstDayIndex + daysInMonth + 6) / 7) * 7
+    val today = LocalDate.now()
 
     return List(totalCells) { index ->
         val dayNumber = index - firstDayIndex + 1
@@ -394,7 +395,7 @@ private fun buildMonthCells(
             val date = month.atDay(dayNumber)
             DayUiModel(
                 date = date,
-                enabled = date in startDate..endDate
+                enabled = date in startDate..endDate && !date.isAfter(today)
             )
         }
     }
