@@ -10,5 +10,8 @@ data class HabitFormState(
     val color: String = "", // or Int
     val colorError: String = "", // or Int
     val isValid: Boolean = false,
-    val editingHabitId: String? = null
+    val editingHabitId: String? = null,
+    val reminderEnabled: Boolean = false,
+    // HH:mm 24h format, null when no time chosen yet
+    val reminderTime: String? = null
 )

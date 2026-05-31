@@ -14,7 +14,9 @@ fun Habit.toEntity() = HabitEntity(
     createdDate = createdDate,
     updatedDate = updatedDate,
     maxStreak = maxStreak,
-    isActive = isActive
+    isActive = isActive,
+    reminderEnabled = reminderEnabled,
+    reminderTime = reminderTime
 )
 
 fun HabitEntity.toDomain() = Habit(
@@ -28,6 +30,7 @@ fun HabitEntity.toDomain() = Habit(
     createdDate = createdDate,
     updatedDate = updatedDate,
     maxStreak = maxStreak,
-    isActive = isActive
+    isActive = isActive,
+    reminderEnabled = reminderEnabled,
+    reminderTime = reminderTime
 )
-

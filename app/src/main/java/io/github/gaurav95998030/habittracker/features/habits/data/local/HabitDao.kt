@@ -11,6 +11,9 @@ interface HabitDao {
     @Query("SELECT * FROM habits")
     suspend fun getHabits(): List<HabitEntity>
 
+    @Query("SELECT * FROM habits WHERE reminderEnabled = 1 AND reminderTime IS NOT NULL")
+    suspend fun getHabitsWithReminder(): List<HabitEntity>
+
     @Update
     suspend fun updateHabit(habit: HabitEntity)
 
@@ -20,7 +23,9 @@ interface HabitDao {
         description = :description,
         color = :color,
         category = :category,
-        updatedDate = :updatedDate
+        updatedDate = :updatedDate,
+        reminderEnabled = :reminderEnabled,
+        reminderTime = :reminderTime
     WHERE id = :id
 """)
     suspend fun updateHabitFields(
@@ -29,7 +34,9 @@ interface HabitDao {
         description: String,
         color: String,
         category: String,
-        updatedDate: String
+        updatedDate: String,
+        reminderEnabled: Boolean,
+        reminderTime: String?
     )
 
     @Query("""

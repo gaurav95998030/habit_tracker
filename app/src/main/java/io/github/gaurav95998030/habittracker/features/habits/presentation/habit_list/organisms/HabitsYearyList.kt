@@ -29,6 +29,7 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -72,6 +73,21 @@ fun HabitYearlyLists(
     var isHabitDetailSheetOpen by remember { mutableStateOf(false) }
     var selectedHabitId by remember { mutableStateOf<String?>(null) }
     val selectedHabit = selectedHabitId?.let { id -> habits.firstOrNull { it.id == id } }
+
+    // Deep link from a reminder notification: open the detail sheet for the requested
+    // habit once it appears in the loaded list, then clear the pending flag.
+    val pendingDetailHabitId = viewModel.uiState.collectAsState().value.pendingDetailHabitId
+    LaunchedEffect(pendingDetailHabitId, habits) {
+        android.util.Log.d(
+            "HabitDeepLink",
+            "yearly-list effect: pending=$pendingDetailHabitId habits=${habits.size}"
+        )
+        val pending = pendingDetailHabitId ?: return@LaunchedEffect
+        val habit = habits.firstOrNull { it.id == pending } ?: return@LaunchedEffect
+        selectedHabitId = habit.id
+        isHabitDetailSheetOpen = true
+        viewModel.consumePendingDetail()
+    }
     Box(
         modifier = Modifier
             .padding(horizontal = 16.dp)
@@ -126,7 +142,20 @@ fun HabitYearlyLists(
         }
     }
 
+    // Force-show whenever visibility flips on. ModalBottomSheet's auto-show races
+    // with `confirmValueChange = { it != Hidden }` when the sheet enters the tree
+    // in the same frame it becomes visible (cold-start deep-link path).
+    LaunchedEffect(isHabitDetailSheetOpen) {
+        if (isHabitDetailSheetOpen && !sheetState.isVisible) {
+            sheetState.show()
+        }
+    }
+
     if (isHabitDetailSheetOpen && selectedHabit != null) {
+        android.util.Log.d(
+            "HabitDeepLink",
+            "rendering detail sheet for ${selectedHabit.id}, sheetValue=${sheetState.currentValue}"
+        )
 
         BackHandler(enabled = true) {
             isHabitDetailSheetOpen = false

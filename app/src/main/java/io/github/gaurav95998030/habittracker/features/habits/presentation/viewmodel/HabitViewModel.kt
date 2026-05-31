@@ -15,6 +15,7 @@ import io.github.gaurav95998030.habittracker.features.habits.domain.usecases.Tog
 import io.github.gaurav95998030.habittracker.features.habits.domain.usecases.UpdateHabitUseCase
 import io.github.gaurav95998030.habittracker.features.habits.presentation.states.HabitFormState
 import io.github.gaurav95998030.habittracker.features.habits.presentation.states.HabitState
+import io.github.gaurav95998030.habittracker.features.reminders.HabitReminderScheduler
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -30,7 +31,8 @@ class HabitViewModel @Inject constructor(
     private val getHabitsUseCase: GetHabitsUseCase,
     private val toggleHabitCompletionUseCase: ToggleHabitCompletionUseCase,
     private val updateHabitUseCase: UpdateHabitUseCase,
-    private val deleteHabitUseCase: DeleteHabitUseCase
+    private val deleteHabitUseCase: DeleteHabitUseCase,
+    private val reminderScheduler: HabitReminderScheduler
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HabitState())
@@ -48,7 +50,9 @@ class HabitViewModel @Inject constructor(
             category = habit.category,
             color = habit.color,
             isValid = habit.name.isNotBlank(),
-            editingHabitId = habit.id
+            editingHabitId = habit.id,
+            reminderEnabled = habit.reminderEnabled,
+            reminderTime = habit.reminderTime
         )
     }
 
@@ -68,15 +72,21 @@ class HabitViewModel @Inject constructor(
 
                 val editingId = formState.editingHabitId
                 val snapshot = editingHabitSnapshot
-                if (editingId != null && snapshot != null) {
+                val reminderEnabled = formState.reminderEnabled && formState.reminderTime != null
+                val reminderTime = if (reminderEnabled) formState.reminderTime else null
+
+                val savedHabit: Habit = if (editingId != null && snapshot != null) {
                     val updated = snapshot.copy(
                         name = formState.name,
                         description = formState.description,
                         color = formState.color,
                         category = formState.category,
-                        updatedDate = Instant.now().toString()
+                        updatedDate = Instant.now().toString(),
+                        reminderEnabled = reminderEnabled,
+                        reminderTime = reminderTime
                     )
                     updateHabitUseCase.invoke(updated)
+                    updated
                 } else {
                     val habit = Habit(
                         id = HabitUtil.generateUniqueId(),
@@ -89,9 +99,18 @@ class HabitViewModel @Inject constructor(
                         createdDate = Instant.now().toString(),
                         updatedDate = Instant.now().toString(),
                         maxStreak = 0,
-                        isActive = true
+                        isActive = true,
+                        reminderEnabled = reminderEnabled,
+                        reminderTime = reminderTime
                     )
                     addHabitUseCase.invoke(habit)
+                    habit
+                }
+
+                // Cancel any prior alarm for this habit, then re-schedule if enabled.
+                reminderScheduler.cancel(savedHabit.id)
+                if (savedHabit.reminderEnabled && savedHabit.reminderTime != null) {
+                    reminderScheduler.schedule(savedHabit)
                 }
 
                 _uiState.update { it.copy(isAddingHabit = false) }
@@ -193,6 +212,7 @@ class HabitViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 deleteHabitUseCase.invoke(habit.id)
+                reminderScheduler.cancel(habit.id)
             } catch (e: Exception) {
                 Log.e("HabitViewModel", "Error deleting habit", e)
             }
@@ -203,13 +223,15 @@ class HabitViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 addHabitUseCase.invoke(habit)
+                if (habit.reminderEnabled && habit.reminderTime != null) {
+                    reminderScheduler.schedule(habit)
+                }
                 getHabits()
             } catch (e: Exception) {
                 Log.e("HabitViewModel", "Error restoring habit", e)
             }
         }
     }
-
 
 
 
@@ -243,6 +265,39 @@ class HabitViewModel @Inject constructor(
         )
     }
 
+    fun onReminderEnabledChanged(enabled: Boolean) {
+        formState = formState.copy(
+            reminderEnabled = enabled,
+            // default to 9:00 AM when first enabling without an existing time
+            reminderTime = if (enabled && formState.reminderTime == null) "09:00" else formState.reminderTime
+        )
+    }
+
+    fun onReminderTimeChanged(hour: Int, minute: Int) {
+        val formatted = "%02d:%02d".format(hour, minute)
+        formState = formState.copy(
+            reminderEnabled = true,
+            reminderTime = formatted
+        )
+    }
+
+    /**
+     * Called from MainActivity when a reminder notification is tapped. We stash the
+     * id in state; the habit list screen opens the detail sheet once the habit shows
+     * up in the loaded list, then calls [consumePendingDetail] to clear it.
+     */
+    fun openHabitDetail(habitId: String) {
+        Log.d("HabitDeepLink", "openHabitDetail: $habitId")
+        _uiState.update { it.copy(pendingDetailHabitId = habitId) }
+        // Ensure the list is loaded so the detail sheet has something to render.
+        if (_uiState.value.habits.isNullOrEmpty()) {
+            getHabits()
+        }
+    }
+
+    fun consumePendingDetail() {
+        _uiState.update { it.copy(pendingDetailHabitId = null) }
+    }
 
 
 }

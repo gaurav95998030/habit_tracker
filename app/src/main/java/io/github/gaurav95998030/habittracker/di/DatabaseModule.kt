@@ -25,6 +25,7 @@ object DatabaseModule {
             HabitDatabase::class.java,
             "habit_database"
         )
+            .addMigrations(HabitDatabase.MIGRATION_1_2)
             .build()
     }
 
@@ -34,4 +35,3 @@ object DatabaseModule {
         return database.habitDao()
     }
 }
-

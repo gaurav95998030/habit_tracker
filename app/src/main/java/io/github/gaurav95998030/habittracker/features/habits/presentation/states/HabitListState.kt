@@ -10,5 +10,8 @@ data class HabitState(
     val habit: Habit? = null,
     val habitFormState: HabitFormState? = null,
     val addHabitError: String? = null,
-    val habits: List<Habit>? = emptyList()
+    val habits: List<Habit>? = emptyList(),
+    // Set when a notification deep link or external trigger wants the detail
+    // sheet for a specific habit to open. Consumed by the UI after the sheet shows.
+    val pendingDetailHabitId: String? = null
 )

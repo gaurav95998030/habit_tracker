@@ -11,5 +11,8 @@ data class Habit(
     val createdDate: String,
     val updatedDate: String,
     val maxStreak: Int,
-    val isActive: Boolean
+    val isActive: Boolean,
+    val reminderEnabled: Boolean = false,
+    // HH:mm 24h format, null when no reminder set
+    val reminderTime: String? = null
 )

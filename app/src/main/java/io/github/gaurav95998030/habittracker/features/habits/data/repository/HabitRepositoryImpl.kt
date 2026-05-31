@@ -24,6 +24,11 @@ class HabitRepositoryImpl(
        val habit: List<HabitEntity> =  dao.getHabits();
         return habit.map { it.toDomain() }
     }
+
+    override suspend fun getHabitsWithReminder(): List<Habit> {
+        return dao.getHabitsWithReminder().map { it.toDomain() }
+    }
+
     override suspend fun updateHabit(habit: Habit) {
         dao.updateHabitFields(
             id = habit.id,
@@ -31,7 +36,9 @@ class HabitRepositoryImpl(
             description = habit.description,
             color = habit.color,
             category = habit.category,
-            updatedDate = habit.updatedDate
+            updatedDate = habit.updatedDate,
+            reminderEnabled = habit.reminderEnabled,
+            reminderTime = habit.reminderTime
         )
     }
 

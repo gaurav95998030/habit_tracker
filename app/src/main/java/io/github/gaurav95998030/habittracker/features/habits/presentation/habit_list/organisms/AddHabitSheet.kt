@@ -42,6 +42,7 @@ import io.github.gaurav95998030.habittracker.commons.ui.AppButton
 import io.github.gaurav95998030.habittracker.commons.ui.VerticalSpace
 import io.github.gaurav95998030.habittracker.features.habits.presentation.habit_list.molecules.CategorySelector
 import io.github.gaurav95998030.habittracker.features.habits.presentation.habit_list.molecules.HabitColorPicker
+import io.github.gaurav95998030.habittracker.features.habits.presentation.habit_list.molecules.ReminderPicker
 import io.github.gaurav95998030.habittracker.features.habits.presentation.viewmodel.HabitViewModel
 import io.github.gaurav95998030.habittracker.ui.theme.AppTheme
 import androidx.compose.ui.platform.LocalDensity
@@ -231,6 +232,17 @@ fun AddHabitSheet(
                 categories = categories,
                 selectedCategory = categorySelected,
                 onCategorySelected = viewModel::onCategoryChanged
+            )
+
+            VerticalSpace(20.dp)
+
+            SectionLabel(text = "Reminder")
+            VerticalSpace(10.dp)
+            ReminderPicker(
+                enabled = formState.reminderEnabled,
+                time = formState.reminderTime,
+                onEnabledChanged = viewModel::onReminderEnabledChanged,
+                onTimeSelected = viewModel::onReminderTimeChanged
             )
 
             VerticalSpace(24.dp)
