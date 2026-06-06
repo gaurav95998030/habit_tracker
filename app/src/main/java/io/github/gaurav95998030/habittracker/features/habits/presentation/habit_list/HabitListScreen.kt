@@ -2,9 +2,17 @@ package io.github.gaurav95998030.habittracker.features.habits.presentation.habit
 
 import android.os.Build
 import androidx.annotation.RequiresApi
+import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.ui.Alignment
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.Button
@@ -130,15 +138,14 @@ fun HabitListScreen(
     }
 
     if (showSheet) {
-        val sheetContainerColor = if (isSystemInDarkTheme()) AppTheme.colors.background else Color.White
         ModalBottomSheet(
             onDismissRequest = {
                 showSheet = false
                 viewModel.resetForm()
             },
-            dragHandle = null,
+            dragHandle = { SheetDragHandle() },
             sheetState = sheetState,
-            containerColor = sheetContainerColor,
+            containerColor = Color(0xFF000000),
             modifier = Modifier.padding(0.dp),
             properties = ModalBottomSheetProperties(shouldDismissOnBackPress = false)
         ) {
@@ -151,5 +158,23 @@ fun HabitListScreen(
                 }
             )
         }
+    }
+}
+
+@Composable
+private fun SheetDragHandle() {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .statusBarsPadding()
+            .padding(top = 10.dp, bottom = 6.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Box(
+            modifier = Modifier
+                .size(width = 36.dp, height = 4.dp)
+                .clip(RoundedCornerShape(2.dp))
+                .background(Color(0xFF3A3A3A))
+        )
     }
 }
