@@ -37,7 +37,7 @@ fun AppNavHost(
             HabitListScreen(viewModel = habitViewModel)
         }
         composable(TopLevelDestination.Insights.route) {
-            InsightsScreen()
+            InsightsScreen(viewModel = habitViewModel)
         }
         composable(TopLevelDestination.Settings.route) {
             SettingsScreen()

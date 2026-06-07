@@ -9,12 +9,17 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.annotation.RequiresApi
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.gaurav95998030.habittracker.features.habits.presentation.viewmodel.HabitViewModel
 import io.github.gaurav95998030.habittracker.features.reminders.ReminderConstants
+import io.github.gaurav95998030.habittracker.features.settings.domain.model.ThemePreference
+import io.github.gaurav95998030.habittracker.features.settings.presentation.SettingsViewModel
 import io.github.gaurav95998030.habittracker.ui.theme.AppTheme
 import io.github.gaurav95998030.habittracker.ui.theme.Habit_TrackerTheme
 import dagger.hilt.android.AndroidEntryPoint
@@ -23,6 +28,7 @@ import dagger.hilt.android.AndroidEntryPoint
 class MainActivity : ComponentActivity() {
 
     private val viewModel: HabitViewModel by viewModels()
+    private val settingsViewModel: SettingsViewModel by viewModels()
 
     @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -31,7 +37,17 @@ class MainActivity : ComponentActivity() {
         // Handle a notification tap that cold-started us.
         handleDeepLink(intent)
         setContent {
-            Habit_TrackerTheme {
+            // Theme preference is persisted in DataStore via SettingsRepository.
+            // collectAsStateWithLifecycle emits the StateFlow's current value
+            // immediately (default Dark for fresh installs, then the persisted
+            // value once it loads), so the whole tree re-themes on toggle.
+            val themePref by settingsViewModel.themePreference.collectAsStateWithLifecycle()
+            val isDark = when (themePref) {
+                ThemePreference.Light -> false
+                ThemePreference.Dark -> true
+                ThemePreference.System -> isSystemInDarkTheme()
+            }
+            Habit_TrackerTheme(darkTheme = isDark) {
                 MainScreen(habitViewModel = viewModel)
             }
         }

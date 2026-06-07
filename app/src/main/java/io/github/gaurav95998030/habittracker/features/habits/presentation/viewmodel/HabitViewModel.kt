@@ -17,9 +17,11 @@ import io.github.gaurav95998030.habittracker.features.habits.presentation.states
 import io.github.gaurav95998030.habittracker.features.habits.presentation.states.HabitState
 import io.github.gaurav95998030.habittracker.features.habits.presentation.states.HeatmapViewMode
 import io.github.gaurav95998030.habittracker.features.reminders.HabitReminderScheduler
+import io.github.gaurav95998030.habittracker.features.settings.domain.repository.SettingsRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.time.Instant
@@ -33,7 +35,8 @@ class HabitViewModel @Inject constructor(
     private val toggleHabitCompletionUseCase: ToggleHabitCompletionUseCase,
     private val updateHabitUseCase: UpdateHabitUseCase,
     private val deleteHabitUseCase: DeleteHabitUseCase,
-    private val reminderScheduler: HabitReminderScheduler
+    private val reminderScheduler: HabitReminderScheduler,
+    private val settingsRepository: SettingsRepository,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HabitState())
@@ -117,8 +120,12 @@ class HabitViewModel @Inject constructor(
                 }
 
                 // Cancel any prior alarm for this habit, then re-schedule if enabled.
+                // The master switch in Settings gates the (re)schedule — if the
+                // user has notifications off globally, we still cancel so a
+                // previously-armed alarm stops firing, but we don't re-arm.
                 reminderScheduler.cancel(savedHabit.id)
-                if (savedHabit.reminderEnabled && savedHabit.reminderTime != null) {
+                val masterEnabled = settingsRepository.notificationsEnabled.first()
+                if (masterEnabled && savedHabit.reminderEnabled && savedHabit.reminderTime != null) {
                     reminderScheduler.schedule(savedHabit)
                 }
 
@@ -243,7 +250,8 @@ class HabitViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 addHabitUseCase.invoke(habit)
-                if (habit.reminderEnabled && habit.reminderTime != null) {
+                val masterEnabled = settingsRepository.notificationsEnabled.first()
+                if (masterEnabled && habit.reminderEnabled && habit.reminderTime != null) {
                     reminderScheduler.schedule(habit)
                 }
                 getHabits()
