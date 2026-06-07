@@ -13,7 +13,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
-import io.github.gaurav95998030.habittracker.features.habits.presentation.habit_list.HabitListScreen
 import io.github.gaurav95998030.habittracker.features.habits.presentation.viewmodel.HabitViewModel
 import io.github.gaurav95998030.habittracker.features.reminders.ReminderConstants
 import io.github.gaurav95998030.habittracker.ui.theme.AppTheme
@@ -33,9 +32,7 @@ class MainActivity : ComponentActivity() {
         handleDeepLink(intent)
         setContent {
             Habit_TrackerTheme {
-                HabitListScreen(
-                    viewModel = viewModel,
-                )
+                MainScreen(habitViewModel = viewModel)
             }
         }
     }

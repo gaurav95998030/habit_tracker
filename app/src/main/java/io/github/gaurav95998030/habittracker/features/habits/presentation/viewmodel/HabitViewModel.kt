@@ -42,6 +42,14 @@ class HabitViewModel @Inject constructor(
 
     private var editingHabitSnapshot: Habit? = null
 
+    init {
+        // Activity-scoped ViewModel: load once on construction so re-entering
+        // the Home tab doesn't re-trigger the shimmer. saveHabit/restoreHabit
+        // already call getHabits() to refresh after mutations, and PTR refreshes
+        // on demand.
+        getHabits()
+    }
+
     fun startEditingHabit(habit: Habit) {
         editingHabitSnapshot = habit
         formState = HabitFormState(

@@ -5,6 +5,7 @@ import androidx.annotation.RequiresApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -29,7 +30,6 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -88,11 +88,13 @@ fun HabitListScreen(
     }
 
 
-    LaunchedEffect(Unit) {
-        viewModel.getHabits()
-    }
     Scaffold(
-
+        // The parent MainScreen Scaffold already accounts for system bars
+        // (status bar at the top, AppBottomBar at the bottom — and the bar
+        // itself consumes the system gesture inset via .navigationBarsPadding()).
+        // Without this, our inner Scaffold re-applies systemBars insets and
+        // we get a visible gap above the bottom navigation.
+        contentWindowInsets = WindowInsets(0),
         floatingActionButton = {
             FloatingActionButton(
                 onClick = {
