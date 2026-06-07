@@ -9,12 +9,15 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -44,10 +47,16 @@ import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
+import io.github.gaurav95998030.habittracker.features.habits.presentation.habit_list.molecules.CategoryChips
 import io.github.gaurav95998030.habittracker.features.habits.presentation.habit_list.molecules.HabitCalendar
 import io.github.gaurav95998030.habittracker.features.habits.presentation.habit_list.molecules.HabitHeatmapLinearStrip
+import io.github.gaurav95998030.habittracker.features.habits.presentation.habit_list.molecules.HomeHeader
+import io.github.gaurav95998030.habittracker.features.habits.presentation.habit_list.molecules.ProgressRingCard
 import io.github.gaurav95998030.habittracker.features.habits.presentation.habit_list.molecules.ShowHabitTile
+import io.github.gaurav95998030.habittracker.features.habits.presentation.habit_list.molecules.ShowHabitWeekTile
 import io.github.gaurav95998030.habittracker.features.habits.presentation.habit_list.molecules.YearlyHabitHeatCalender
+import io.github.gaurav95998030.habittracker.features.habits.presentation.states.ALL_CATEGORIES
+import io.github.gaurav95998030.habittracker.features.habits.presentation.states.HeatmapViewMode
 import io.github.gaurav95998030.habittracker.features.habits.presentation.viewmodel.HabitViewModel
 import io.github.gaurav95998030.habittracker.ui.theme.AppTheme
 import java.time.LocalDate
@@ -74,9 +83,32 @@ fun HabitYearlyLists(
     var selectedHabitId by remember { mutableStateOf<String?>(null) }
     val selectedHabit = selectedHabitId?.let { id -> habits.firstOrNull { it.id == id } }
 
+    val uiStateValue = viewModel.uiState.collectAsState().value
+    val viewMode = uiStateValue.heatmapViewMode
+    val selectedCategory = uiStateValue.selectedCategory
+
+    val categories = remember(habits) {
+        val distinct = habits
+            .map { it.category }
+            .filter { it.isNotBlank() }
+            .distinct()
+        listOf(ALL_CATEGORIES) + distinct
+    }
+    val effectiveCategory = if (selectedCategory in categories) selectedCategory else ALL_CATEGORIES
+    val filteredHabits = remember(habits, effectiveCategory) {
+        if (effectiveCategory == ALL_CATEGORIES) habits
+        else habits.filter { it.category == effectiveCategory }
+    }
+
+    val today = java.time.LocalDate.now().toString()
+    val completedToday = remember(habits, today) {
+        habits.count { it.completedDates.contains(today) }
+    }
+    val totalToday = habits.size
+
     // Deep link from a reminder notification: open the detail sheet for the requested
     // habit once it appears in the loaded list, then clear the pending flag.
-    val pendingDetailHabitId = viewModel.uiState.collectAsState().value.pendingDetailHabitId
+    val pendingDetailHabitId = uiStateValue.pendingDetailHabitId
     LaunchedEffect(pendingDetailHabitId, habits) {
         android.util.Log.d(
             "HabitDeepLink",
@@ -88,39 +120,74 @@ fun HabitYearlyLists(
         isHabitDetailSheetOpen = true
         viewModel.consumePendingDetail()
     }
-    Box(
-        modifier = Modifier
-            .padding(horizontal = 16.dp)
-            .fillMaxSize()
-            .navigationBarsPadding()
-    ) {
+    val statusTop = WindowInsets.statusBars.asPaddingValues()
+        .calculateTopPadding()
+    val navBottom = WindowInsets.navigationBars.asPaddingValues()
+        .calculateBottomPadding()
+    Box(modifier = Modifier.fillMaxSize()) {
         LazyColumn(
-            modifier = Modifier
-                .fillMaxSize(),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            modifier = Modifier.fillMaxSize(),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+            contentPadding = PaddingValues(
+                start = 16.dp,
+                end = 16.dp,
+                top = statusTop,
+                bottom = navBottom,
+            ),
         ) {
-            item(){
-                Spacer(modifier = Modifier.height(20.dp))
+            item("home_header") {
+                HomeHeader(
+                    userName = "Friend",
+                    viewMode = viewMode,
+                    onToggleViewMode = { viewModel.toggleHeatmapViewMode() },
+                )
+            }
+            item("progress_ring") {
+                ProgressRingCard(
+                    completed = completedToday,
+                    total = totalToday,
+                )
+            }
+            if (categories.size > 1) {
+                item("category_chips") {
+                    CategoryChips(
+                        categories = categories,
+                        selected = effectiveCategory,
+                        onSelect = { viewModel.onCategorySelected(it) },
+                    )
+                }
             }
             items(
-                count = habits.size,
-                key = { index -> habits[index].id }
+                count = filteredHabits.size,
+                key = { index -> filteredHabits[index].id }
             ) { index ->
-                val habit = habits[index]
+                val habit = filteredHabits[index]
                 SwipeToDeleteContainer(
                     onDelete = { onDeleteHabit(habit) }
                 ) {
-                    ShowHabitTile(
-                        habit,
-                        onToggleCompleted = { date ->
-                            viewModel.updateHabit(habit.id, date)
-                        },
-                        onClick = {
-                            selectedHabitId = habit.id
-                            isHabitDetailSheetOpen = true
-                        }
-                    )
+                    val onToggle: (LocalDate) -> Unit = { date ->
+                        viewModel.updateHabit(habit.id, date)
+                    }
+                    val onTileClick = {
+                        selectedHabitId = habit.id
+                        isHabitDetailSheetOpen = true
+                    }
+                    when (viewMode) {
+                        HeatmapViewMode.Week -> ShowHabitWeekTile(
+                            habit = habit,
+                            onToggleCompleted = onToggle,
+                            onClick = onTileClick,
+                        )
+                        HeatmapViewMode.Year -> ShowHabitTile(
+                            habit,
+                            onToggleCompleted = onToggle,
+                            onClick = onTileClick,
+                        )
+                    }
                 }
+            }
+            item("bottom_spacer") {
+                Spacer(modifier = Modifier.height(96.dp))
             }
 
 //            item {

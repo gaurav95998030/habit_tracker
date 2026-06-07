@@ -53,25 +53,25 @@ internal val LightAppColors = AppColors(
 )
 
 /**
- * Dark theme color palette
+ * Dark theme color palette — green/lime accent on a near-black background.
  */
 internal val DarkAppColors = AppColors(
-    primary = Color(0xFFD0BCFF),
-    primaryVariant = Color(0xFFCCC2DC),
-    secondary = Color(0xFFEFB8C8),
-    background = Color(0xFF1C1B1F),
-    surface = Color(0xFF1C1B1F),
-    error = Color(0xFFF2B8B5),
-    textPrimary = Color(0xFFE6E1E5),
-    textSecondary = Color(0xFFCAC4D0),
-    textTertiary = Color(0xFF938F99),
-    onPrimary = Color(0xFF381E72),
-    onSecondary = Color(0xFF492532),
-    onBackground = Color(0xFFE6E1E5),
-    onSurface = Color(0xFFE6E1E5),
-    onError = Color(0xFF601410),
-    divider = Color(0xFF49454F),
-    success = Color(0xFF81C784),
+    primary = Color(0xFFCDF564),
+    primaryVariant = Color(0xFFB9E04A),
+    secondary = Color(0xFF7BC9FF),
+    background = Color(0xFF050505),
+    surface = Color(0xFF111111),
+    error = Color(0xFFEF6B6B),
+    textPrimary = Color(0xFFF2F2F2),
+    textSecondary = Color(0xFFB5B5B5),
+    textTertiary = Color(0xFF6F6F6F),
+    onPrimary = Color(0xFF0B1500),
+    onSecondary = Color(0xFF002235),
+    onBackground = Color(0xFFF2F2F2),
+    onSurface = Color(0xFFF2F2F2),
+    onError = Color(0xFF2A0A0A),
+    divider = Color(0xFF222222),
+    success = Color(0xFFCDF564),
     warning = Color(0xFFFFB74D)
 )
 

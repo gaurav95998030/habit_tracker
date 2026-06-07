@@ -7,6 +7,7 @@ import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -50,6 +51,11 @@ import io.github.gaurav95998030.habittracker.features.habits.presentation.habit_
 import io.github.gaurav95998030.habittracker.ui.theme.AppTheme
 import java.time.LocalDate
 
+// Shared across every year-mode tile — same 365-entry list, never changes within a session.
+// Initialisation deferred to first read so it lands on whichever thread first composes a tile
+// (always the main thread, after the @RequiresApi(O)-guarded HabitListScreen has been entered).
+private val currentYearDates by lazy(LazyThreadSafetyMode.NONE) { getDatesOfCurrentYear() }
+
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun ShowHabitTile(
@@ -62,7 +68,9 @@ fun ShowHabitTile(
     val CELL_DP = 14
     val GAP_DP = 3
     val today = LocalDate.now()
-    val dates = remember { getDatesOfCurrentYear() }
+    // Cached once at the module level — recomputing 365 entries inside every tile
+    // slot triggered measurable jank when items came back into view on scroll.
+    val dates = currentYearDates
     val columns = (dates.size + ROWS - 1) / ROWS
 
     val todayIndex = remember(dates, today) {
@@ -120,17 +128,39 @@ fun ShowHabitTile(
     val onHabitColor = if (habitColor.luminance() > 0.4f) Color(0xFF1C1B1F) else Color.White
     val colors = AppTheme.colors
 
+    val borderStroke = remember(habitColor) {
+        BorderStroke(
+            width = 1.dp,
+            brush = Brush.linearGradient(
+                colors = listOf(
+                    habitColor.copy(alpha = 0.5f),
+                    habitColor.copy(alpha = 0.15f),
+                )
+            ),
+        )
+    }
+    val fillBrush = remember(habitColor) {
+        Brush.verticalGradient(
+            colors = listOf(
+                habitColor.copy(alpha = 0.08f),
+                Color.Transparent,
+            )
+        )
+    }
+
     Surface(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(16.dp))
             .clickable(onClick = onClick),
         color = colors.surface,
-        shadowElevation = 2.dp,
-        shape = RoundedCornerShape(16.dp)
+        shape = RoundedCornerShape(16.dp),
+        border = borderStroke,
     ) {
         Column(
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp)
+            modifier = Modifier
+                .background(fillBrush)
+                .padding(horizontal = 16.dp, vertical = 14.dp)
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -140,16 +170,17 @@ fun ShowHabitTile(
                     contentAlignment = Alignment.Center,
                     modifier = Modifier
                         .size(44.dp)
-                        .background(
-                            brush = Brush.radialGradient(
-                                colors = listOf(habitColor, habitColor.copy(alpha = 0.7f))
-                            ),
-                            shape = RoundedCornerShape(14.dp)
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(habitColor.copy(alpha = 0.18f))
+                        .border(
+                            width = 1.dp,
+                            color = habitColor.copy(alpha = 0.4f),
+                            shape = RoundedCornerShape(14.dp),
                         )
                 ) {
                     Text(
                         text = habit.name.take(1).uppercase(),
-                        color = onHabitColor,
+                        color = habitColor,
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold
                     )
@@ -167,12 +198,21 @@ fun ShowHabitTile(
                     )
                     if (habit.category.isNotBlank()) {
                         Spacer(modifier = Modifier.height(2.dp))
-                        Text(
-                            text = habit.category,
-                            style = AppTheme.textStyles.caption.copy(
-                                color = colors.textTertiary
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Box(
+                                modifier = Modifier
+                                    .size(6.dp)
+                                    .clip(CircleShape)
+                                    .background(habitColor),
                             )
-                        )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = habit.category,
+                                style = AppTheme.textStyles.caption.copy(
+                                    color = colors.textSecondary
+                                )
+                            )
+                        }
                     }
                 }
 
@@ -182,11 +222,11 @@ fun ShowHabitTile(
                     contentAlignment = Alignment.Center,
                     modifier = Modifier
                         .scale(checkScale)
-                        .size(36.dp)
+                        .size(40.dp)
                         .background(color = checkBgColor, shape = CircleShape)
                         .border(
-                            width = 2.dp,
-                            color = if (isCompletedToday) habitColor else colors.divider,
+                            width = 1.5.dp,
+                            color = if (isCompletedToday) habitColor else habitColor.copy(alpha = 0.4f),
                             shape = CircleShape
                         )
                         .clip(CircleShape)
@@ -199,7 +239,7 @@ fun ShowHabitTile(
                     Icon(
                         imageVector = Icons.Default.Check,
                         contentDescription = "Mark complete",
-                        tint = if (isCompletedToday) onHabitColor else colors.divider,
+                        tint = if (isCompletedToday) onHabitColor else habitColor,
                         modifier = Modifier.size(18.dp)
                     )
                 }

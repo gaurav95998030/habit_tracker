@@ -16,7 +16,8 @@
       "Bash(./gradlew :app:assembleDevDebug)",
       "Bash(./gradlew :app:lintDevDebug)",
       "Bash(./gradlew :app:compileProdDebugKotlin)",
-      "Bash(grep -E \"\\\\.kt$\")"
+      "Bash(grep -E \"\\\\.kt$\")",
+      "Bash(./gradlew :app:assembleDebug)"
     ],
     "additionalDirectories": [
       "/Users/gauravkumar/AndroidStudioProjects/habit_tracker/app/src/main/res"

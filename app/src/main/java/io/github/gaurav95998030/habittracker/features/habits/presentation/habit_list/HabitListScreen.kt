@@ -100,8 +100,10 @@ fun HabitListScreen(
                 onClick = {
                     viewModel.resetForm()
                     showSheet = true
-                }
-
+                },
+                containerColor = colors.primary,
+                contentColor = colors.onPrimary,
+                shape = RoundedCornerShape(18.dp),
             ) {
                 Icon(Icons.Default.Add, contentDescription = "Add")
             }

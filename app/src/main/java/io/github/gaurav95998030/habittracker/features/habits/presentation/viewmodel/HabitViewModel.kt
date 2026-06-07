@@ -15,6 +15,7 @@ import io.github.gaurav95998030.habittracker.features.habits.domain.usecases.Tog
 import io.github.gaurav95998030.habittracker.features.habits.domain.usecases.UpdateHabitUseCase
 import io.github.gaurav95998030.habittracker.features.habits.presentation.states.HabitFormState
 import io.github.gaurav95998030.habittracker.features.habits.presentation.states.HabitState
+import io.github.gaurav95998030.habittracker.features.habits.presentation.states.HeatmapViewMode
 import io.github.gaurav95998030.habittracker.features.reminders.HabitReminderScheduler
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -318,5 +319,17 @@ class HabitViewModel @Inject constructor(
         _uiState.update { it.copy(pendingDetailHabitId = null) }
     }
 
+    fun toggleHeatmapViewMode() {
+        _uiState.update {
+            it.copy(
+                heatmapViewMode = if (it.heatmapViewMode == HeatmapViewMode.Week)
+                    HeatmapViewMode.Year else HeatmapViewMode.Week
+            )
+        }
+    }
+
+    fun onCategorySelected(category: String) {
+        _uiState.update { it.copy(selectedCategory = category) }
+    }
 
 }
