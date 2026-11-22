@@ -1,14 +1,18 @@
 package io.github.gaurav95998030.habittracker
 
+import android.Manifest
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.annotation.RequiresApi
+import androidx.core.content.ContextCompat
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -30,10 +34,17 @@ class MainActivity : ComponentActivity() {
     private val viewModel: HabitViewModel by viewModels()
     private val settingsViewModel: SettingsViewModel by viewModels()
 
+    // Android 13+ needs the POST_NOTIFICATIONS runtime grant before any reminder can
+    // show. Without it the alarm fires but the notification is silently dropped, so we
+    // ask once on launch (the reminder picker also asks when a reminder is enabled).
+    private val notificationPermissionLauncher =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { /* no-op */ }
+
     @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        requestNotificationPermissionIfNeeded()
         // Handle a notification tap that cold-started us.
         handleDeepLink(intent)
         setContent {
@@ -50,6 +61,17 @@ class MainActivity : ComponentActivity() {
             Habit_TrackerTheme(darkTheme = isDark) {
                 MainScreen(habitViewModel = viewModel)
             }
+        }
+    }
+
+    private fun requestNotificationPermissionIfNeeded() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return
+        val granted = ContextCompat.checkSelfPermission(
+            this,
+            Manifest.permission.POST_NOTIFICATIONS
+        ) == PackageManager.PERMISSION_GRANTED
+        if (!granted) {
+            notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
         }
     }
 

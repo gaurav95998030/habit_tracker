@@ -9,6 +9,9 @@ object ReminderConstants {
 
     const val ACTION_FIRE_REMINDER = "io.github.gaurav95998030.habittracker.ACTION_FIRE_REMINDER"
     const val ACTION_OPEN_HABIT_DETAIL = "io.github.gaurav95998030.habittracker.ACTION_OPEN_HABIT_DETAIL"
+
+    // Fired by the "Mark done" notification action — checks the habit off for today.
+    const val ACTION_MARK_DONE = "io.github.gaurav95998030.habittracker.ACTION_MARK_DONE"
     const val DEEPLINK_SCHEME = "habit"
     const val DEEPLINK_HOST = "detail"
 

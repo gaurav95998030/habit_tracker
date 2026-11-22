@@ -25,9 +25,11 @@ import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.outlined.DarkMode
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.LightMode
+import androidx.compose.material.icons.outlined.NotificationsActive
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.PhoneAndroid
 import androidx.compose.material.icons.outlined.RestartAlt
+import androidx.compose.material.icons.outlined.Widgets
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Switch
@@ -40,6 +42,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
+import android.appwidget.AppWidgetManager
+import android.content.ComponentName
+import android.content.Context
+import android.os.Build
+import io.github.gaurav95998030.habittracker.features.widget.HabitWidgetProvider
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -52,6 +60,7 @@ import io.github.gaurav95998030.habittracker.ui.theme.AppTheme
 fun SettingsScreen(
     modifier: Modifier = Modifier,
     viewModel: SettingsViewModel = hiltViewModel(),
+    onOpenNotifications: () -> Unit = {},
 ) {
     val theme by viewModel.themePreference.collectAsStateWithLifecycle()
     val remindersOn by viewModel.notificationsEnabled.collectAsStateWithLifecycle()
@@ -62,6 +71,7 @@ fun SettingsScreen(
         remindersOn = remindersOn,
         onThemeSelected = viewModel::onThemeSelected,
         onRemindersChanged = viewModel::onNotificationsEnabledChanged,
+        onOpenNotifications = onOpenNotifications,
     )
 }
 
@@ -72,8 +82,10 @@ private fun SettingsScreenContent(
     remindersOn: Boolean,
     onThemeSelected: (ThemePreference) -> Unit,
     onRemindersChanged: (Boolean) -> Unit,
+    onOpenNotifications: () -> Unit,
 ) {
     val colors = AppTheme.colors
+    val context = LocalContext.current
 
     Column(
         modifier = modifier
@@ -123,6 +135,27 @@ private fun SettingsScreenContent(
                         ),
                     )
                 },
+            )
+            RowDivider()
+            SettingsRow(
+                icon = Icons.Outlined.NotificationsActive,
+                title = "Notification center",
+                subtitle = "See every reminder in one place",
+                trailing = { ChevronRight() },
+                onClick = onOpenNotifications,
+            )
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        SectionLabel("HOME SCREEN")
+        SettingsCard {
+            SettingsRow(
+                icon = Icons.Outlined.Widgets,
+                title = "Add home widget",
+                subtitle = "Track and tick off habits without opening the app",
+                trailing = { ChevronRight() },
+                onClick = { requestPinHabitWidget(context) },
             )
         }
 
@@ -347,6 +380,21 @@ private fun ChevronRight() {
         contentDescription = null,
         tint = AppTheme.colors.textTertiary,
         modifier = Modifier.size(22.dp),
+    )
+}
+
+/**
+ * Ask the launcher to pin the habit widget. Supported on API 26+ with a launcher that
+ * allows programmatic pinning; on anything else the user adds it from the widget picker.
+ */
+private fun requestPinHabitWidget(context: Context) {
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
+    val manager = context.getSystemService(AppWidgetManager::class.java) ?: return
+    if (!manager.isRequestPinAppWidgetSupported) return
+    manager.requestPinAppWidget(
+        ComponentName(context, HabitWidgetProvider::class.java),
+        null,
+        null,
     )
 }
 

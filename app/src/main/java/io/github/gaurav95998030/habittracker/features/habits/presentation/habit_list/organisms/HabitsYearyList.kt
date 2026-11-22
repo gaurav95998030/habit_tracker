@@ -69,7 +69,8 @@ fun HabitYearlyLists(
     viewModel: HabitViewModel,
     habits : List<Habit> = emptyList(),
     onEditHabit: (Habit) -> Unit = {},
-    onDeleteHabit: (Habit) -> Unit = {}
+    onDeleteHabit: (Habit) -> Unit = {},
+    onOpenNotifications: () -> Unit = {}
 ){
     val sheetState = rememberModalBottomSheetState(
         skipPartiallyExpanded = true,
@@ -140,6 +141,7 @@ fun HabitYearlyLists(
                     userName = "Friend",
                     viewMode = viewMode,
                     onToggleViewMode = { viewModel.toggleHeatmapViewMode() },
+                    onOpenNotifications = onOpenNotifications,
                 )
             }
             item("progress_ring") {

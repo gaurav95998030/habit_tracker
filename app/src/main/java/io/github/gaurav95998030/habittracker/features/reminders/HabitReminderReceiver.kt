@@ -1,7 +1,6 @@
 package io.github.gaurav95998030.habittracker.features.reminders
 
 import android.Manifest
-import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.BroadcastReceiver
 import android.content.Context
@@ -9,61 +8,132 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Color
 import android.media.RingtoneManager
-import android.net.Uri
 import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import dagger.hilt.android.AndroidEntryPoint
 import io.github.gaurav95998030.habittracker.MainActivity
 import io.github.gaurav95998030.habittracker.R
+import io.github.gaurav95998030.habittracker.features.habits.HabitUtil
 import io.github.gaurav95998030.habittracker.features.habits.domain.model.Habit
+import io.github.gaurav95998030.habittracker.features.habits.domain.repository.HabitRepository
+import io.github.gaurav95998030.habittracker.features.widget.HabitWidgetProvider
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import java.time.LocalDate
 import javax.inject.Inject
 
 @AndroidEntryPoint
 class HabitReminderReceiver : BroadcastReceiver() {
 
     @Inject lateinit var scheduler: HabitReminderScheduler
+    @Inject lateinit var repository: HabitRepository
 
     override fun onReceive(context: Context, intent: Intent) {
-        if (intent.action != ReminderConstants.ACTION_FIRE_REMINDER) return
+        when (intent.action) {
+            ReminderConstants.ACTION_FIRE_REMINDER -> handleFire(context, intent)
+            ReminderConstants.ACTION_MARK_DONE -> handleMarkDone(context, intent)
+        }
+    }
 
+    /**
+     * Fired at the scheduled time. We load the habit fresh from the repository so the
+     * streak line reflects the current completion state, post the notification, and
+     * re-arm tomorrow's alarm (daily repeat).
+     */
+    private fun handleFire(context: Context, intent: Intent) {
         val habitId = intent.getStringExtra(ReminderConstants.EXTRA_HABIT_ID) ?: return
-        val habitName = intent.getStringExtra(ReminderConstants.EXTRA_HABIT_NAME).orEmpty()
-        val habitDescription = intent.getStringExtra(ReminderConstants.EXTRA_HABIT_DESCRIPTION).orEmpty()
-        val habitColor = intent.getStringExtra(ReminderConstants.EXTRA_HABIT_COLOR).orEmpty()
+        val fallbackName = intent.getStringExtra(ReminderConstants.EXTRA_HABIT_NAME).orEmpty()
+        val fallbackColor = intent.getStringExtra(ReminderConstants.EXTRA_HABIT_COLOR).orEmpty()
         val reminderTime = intent.getStringExtra(ReminderConstants.EXTRA_REMINDER_TIME)
 
-        showNotification(context, habitId, habitName, habitDescription, habitColor)
+        val pending = goAsync()
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val habit = runCatching { repository.getHabits() }
+                    .getOrNull()
+                    ?.firstOrNull { it.id == habitId }
 
-        // Re-schedule for the next day (daily repeat).
-        if (reminderTime != null) {
-            scheduler.schedule(
-                Habit(
-                    id = habitId,
-                    userId = "",
-                    name = habitName,
-                    description = habitDescription,
-                    completedDates = emptyList(),
-                    color = habitColor,
-                    category = "",
-                    createdDate = "",
-                    updatedDate = "",
-                    maxStreak = 0,
-                    isActive = true,
-                    reminderEnabled = true,
-                    reminderTime = reminderTime
-                )
-            )
+                val name = habit?.name?.ifBlank { fallbackName } ?: fallbackName
+                val colorHex = habit?.color?.ifBlank { fallbackColor } ?: fallbackColor
+                val streak = habit?.let { currentStreakOf(it) } ?: 0
+                val alreadyDone = habit?.completedDates?.contains(LocalDate.now().toString()) == true
+
+                if (!alreadyDone) {
+                    showNotification(context, habitId, name, colorHex, streak)
+                }
+
+                // Re-schedule for tomorrow so the daily reminder keeps firing.
+                if (reminderTime != null) {
+                    scheduler.schedule(
+                        Habit(
+                            id = habitId,
+                            userId = "",
+                            name = name,
+                            description = habit?.description.orEmpty(),
+                            completedDates = emptyList(),
+                            color = colorHex,
+                            category = "",
+                            createdDate = "",
+                            updatedDate = "",
+                            maxStreak = 0,
+                            isActive = true,
+                            reminderEnabled = true,
+                            reminderTime = reminderTime,
+                        )
+                    )
+                }
+            } finally {
+                pending.finish()
+            }
         }
+    }
+
+    /**
+     * Fired by the "Mark done" notification action. Checks the habit off for today,
+     * dismisses the notification, and refreshes the home-screen widget.
+     */
+    private fun handleMarkDone(context: Context, intent: Intent) {
+        val habitId = intent.getStringExtra(ReminderConstants.EXTRA_HABIT_ID) ?: return
+        val pending = goAsync()
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val habit = runCatching { repository.getHabits() }
+                    .getOrNull()
+                    ?.firstOrNull { it.id == habitId }
+                if (habit != null) {
+                    val today = LocalDate.now().toString()
+                    if (!habit.completedDates.contains(today)) {
+                        repository.updateHabitCompletion(
+                            habit.copy(completedDates = habit.completedDates + today)
+                        )
+                    }
+                }
+                NotificationManagerCompat.from(context).cancel(habitId.hashCode())
+                HabitWidgetProvider.refresh(context)
+            } finally {
+                pending.finish()
+            }
+        }
+    }
+
+    @RequiresApi(Build.VERSION_CODES.O)
+    private fun currentStreakOf(habit: Habit): Int {
+        val dates = habit.completedDates.mapNotNull {
+            runCatching { LocalDate.parse(it) }.getOrNull()
+        }.toSet()
+        return HabitUtil.currentStreak(dates)
     }
 
     private fun showNotification(
         context: Context,
         habitId: String,
         habitName: String,
-        habitDescription: String,
-        habitColorHex: String
+        habitColorHex: String,
+        streak: Int,
     ) {
         scheduler.ensureNotificationChannel()
 
@@ -85,7 +155,7 @@ class HabitReminderReceiver : BroadcastReceiver() {
         //   subsequent taps through onNewIntent with our extras intact.
         val openIntent = Intent(context, MainActivity::class.java).apply {
             action = ReminderConstants.ACTION_OPEN_HABIT_DETAIL
-            data = Uri.Builder()
+            data = android.net.Uri.Builder()
                 .scheme(ReminderConstants.DEEPLINK_SCHEME)
                 .authority(ReminderConstants.DEEPLINK_HOST)
                 .appendPath(habitId)
@@ -93,17 +163,31 @@ class HabitReminderReceiver : BroadcastReceiver() {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
             putExtra(ReminderConstants.EXTRA_OPEN_HABIT_DETAIL, habitId)
         }
-        val contentRequestCode = habitId.hashCode() xor 0x0DEEF
         val piFlags = PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         val contentIntent = PendingIntent.getActivity(
             context,
-            contentRequestCode,
+            habitId.hashCode() xor 0x0DEEF,
             openIntent,
             piFlags
         )
 
-        val title = if (habitName.isNotBlank()) habitName else "Habit reminder"
-        val body = habitDescription.ifBlank { "Tap to check in and keep your streak going." }
+        // "Mark done" action → back to this receiver with ACTION_MARK_DONE.
+        val markDoneIntent = Intent(context, HabitReminderReceiver::class.java).apply {
+            action = ReminderConstants.ACTION_MARK_DONE
+            putExtra(ReminderConstants.EXTRA_HABIT_ID, habitId)
+        }
+        val markDonePi = PendingIntent.getBroadcast(
+            context,
+            habitId.hashCode() xor 0x0D0E,
+            markDoneIntent,
+            piFlags
+        )
+
+        val title = if (habitName.isNotBlank()) "Time for $habitName 🔥" else "Habit reminder"
+        val body = when {
+            streak >= 1 -> "You're on a $streak-day streak. Keep it alive — check in now."
+            else -> "Time to check in and start a new streak."
+        }
         val accentColor = parseAccentColor(habitColorHex)
         val soundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
 
@@ -117,6 +201,7 @@ class HabitReminderReceiver : BroadcastReceiver() {
                     .bigText(body)
             )
             .setContentIntent(contentIntent)
+            .addAction(R.drawable.ic_notification_reminder, "Mark done", markDonePi)
             .setAutoCancel(true)
             // Pre-O these drive heads-up; on O+ the channel takes over.
             .setPriority(NotificationCompat.PRIORITY_HIGH)

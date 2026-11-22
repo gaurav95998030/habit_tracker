@@ -18,7 +18,10 @@ import io.github.gaurav95998030.habittracker.features.habits.presentation.states
 import io.github.gaurav95998030.habittracker.features.habits.presentation.states.HeatmapViewMode
 import io.github.gaurav95998030.habittracker.features.reminders.HabitReminderScheduler
 import io.github.gaurav95998030.habittracker.features.settings.domain.repository.SettingsRepository
+import io.github.gaurav95998030.habittracker.features.widget.HabitWidgetProvider
+import android.content.Context
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
@@ -37,7 +40,11 @@ class HabitViewModel @Inject constructor(
     private val deleteHabitUseCase: DeleteHabitUseCase,
     private val reminderScheduler: HabitReminderScheduler,
     private val settingsRepository: SettingsRepository,
+    @ApplicationContext private val appContext: Context,
 ) : ViewModel() {
+
+    /** Keep the home-screen widget in sync after any change to the habit list. */
+    private fun refreshWidget() = HabitWidgetProvider.refresh(appContext)
 
     private val _uiState = MutableStateFlow(HabitState())
     val uiState = _uiState.asStateFlow()
@@ -132,6 +139,7 @@ class HabitViewModel @Inject constructor(
                 _uiState.update { it.copy(isAddingHabit = false) }
                 resetForm()
                 getHabits()
+                refreshWidget()
                 onSaved()
             } catch (e: Exception) {
                 _uiState.update { it.copy(isAddingHabit = false) }
@@ -224,6 +232,7 @@ class HabitViewModel @Inject constructor(
                 // call use-case *after* state update
                 updatedHabit?.let {
                     toggleHabitCompletionUseCase.invoke(it)
+                    refreshWidget()
                 }
 
             } catch (e: Exception) {
@@ -240,6 +249,7 @@ class HabitViewModel @Inject constructor(
             try {
                 deleteHabitUseCase.invoke(habit.id)
                 reminderScheduler.cancel(habit.id)
+                refreshWidget()
             } catch (e: Exception) {
                 Log.e("HabitViewModel", "Error deleting habit", e)
             }
@@ -255,6 +265,7 @@ class HabitViewModel @Inject constructor(
                     reminderScheduler.schedule(habit)
                 }
                 getHabits()
+                refreshWidget()
             } catch (e: Exception) {
                 Log.e("HabitViewModel", "Error restoring habit", e)
             }

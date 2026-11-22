@@ -4,86 +4,108 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-Android habit-tracking app. Kotlin + Jetpack Compose (Material3), Hilt DI, Room (local persistence), Firebase Firestore (remote — wired as dependencies, but `HabitRepositoryImpl` currently backs everything with the Room DAO only). Single-module Gradle build under `:app` with Kotlin DSL.
+Android habit-tracking app. Kotlin + Jetpack Compose (Material3), Hilt DI, Room (local persistence), DataStore (preferences), Firebase Firestore (remote — wired as dependencies, but `HabitRepositoryImpl` currently backs everything with the Room DAO only). Single-module Gradle build under `:app` with Kotlin DSL.
 
 - `compileSdk=36`, `minSdk=24`, `targetSdk=36`, JVM target 11
-- Package: `com.example.habit_tracker`
+- Package / namespace: `io.github.gaurav95998030.habittracker`
 - Application class: `HabitTrackerApplication` (annotated `@HiltAndroidApp`)
-- Entry point: `MainActivity` (`@AndroidEntryPoint`) → `HabitListScreen`
+- Entry point: `MainActivity` (`@AndroidEntryPoint`) → `Habit_TrackerTheme` → `MainScreen` (Scaffold + bottom nav + `AppNavHost`)
 
 ## Commands
 
 Use the Gradle wrapper. Firebase is enabled via `app/google-services.json` (checked in).
 
+The build has a **product-flavor dimension** (`dev`, `prod`) crossed with build types (`debug`, `release`), so variants are `devDebug`, `devRelease`, `prodDebug`, `prodRelease`. `dev` gets a `.dev` applicationId suffix; only `prod` matches the checked-in `google-services.json`. The umbrella `assembleDebug` builds every flavor's debug; prefer the flavor-specific task when installing.
+
 ```bash
-./gradlew assembleDebug           # build debug APK
-./gradlew installDebug            # install on attached device/emulator
-./gradlew test                    # JVM unit tests (src/test)
-./gradlew connectedAndroidTest    # instrumented tests (src/androidTest, needs device)
-./gradlew lint                    # Android lint
+./gradlew assembleDevDebug          # build the dev debug APK (use prod* to match Firebase)
+./gradlew installDevDebug           # install dev/debug on attached device/emulator
+./gradlew test                      # JVM unit tests (src/test)
+./gradlew connectedAndroidTest      # instrumented tests (src/androidTest, needs device)
+./gradlew lint                      # Android lint
 ./gradlew clean
 ```
 
-Run a single unit test class or method:
+Run a single unit test class or method (note the flavor in the task name):
 
 ```bash
-./gradlew :app:testDebugUnitTest --tests "com.example.habit_tracker.util.DateRangeCalculatorTest"
-./gradlew :app:testDebugUnitTest --tests "com.example.habit_tracker.domain.mapper.CompletionMapperTest.someMethod"
+./gradlew :app:testDevDebugUnitTest --tests "io.github.gaurav95998030.habittracker.util.DateRangeCalculatorTest"
+./gradlew :app:testDevDebugUnitTest --tests "io.github.gaurav95998030.habittracker.domain.mapper.CompletionMapperTest.someMethod"
 ```
 
-Note: `local.properties` pins `sdk.dir` to a machine-specific path and is not portable — each developer must regenerate it.
+Release signing is read from `~/.gradle/gradle.properties` (`RELEASE_STORE_FILE`, `RELEASE_STORE_PASSWORD`, `RELEASE_KEY_ALIAS`, `RELEASE_KEY_PASSWORD`); if unset, release falls back to the debug key. Room schemas are exported to `app/schemas/`. Note: `local.properties` pins `sdk.dir` to a machine-specific path and is not portable — each developer must regenerate it.
 
 ## Architecture
 
-Feature-first Clean Architecture. Everything lives under `com.example.habit_tracker.features.<feature>.{data,domain,presentation}` with Hilt binding layers in `com.example.habit_tracker.di`.
+Feature-first Clean Architecture. Everything lives under `io.github.gaurav95998030.habittracker.features.<feature>.{data,domain,presentation}` with Hilt binding layers in `di/`, cross-feature navigation in `navigation/`, shared UI atoms in `commons/ui/`, and theming in `ui/theme/`.
 
-### Layering (single feature: `habits`)
+Features: **`habits`** (the core), **`insights`** (stats screen), **`reminders`** (alarm-driven notifications), **`settings`** (theme + master notification switch).
 
-- **domain/model** — plain data classes (`Habit`). No framework types.
+### Navigation
+
+- `MainScreen` owns the `NavController`, derives the selected tab from the current backstack entry, and renders a `Scaffold` with `AppBottomBar` + `AppNavHost`.
+- `TopLevelDestination` (enum) is the single source of truth for the three tabs: `Home` (route `home`, labelled "Today" → `HabitListScreen`), `Insights` (→ `InsightsScreen`), `Settings` (→ `SettingsScreen`). Keep the bar and the NavHost in sync through this enum.
+- The tab-switch transaction in `MainScreen.onTabSelected` uses the standard `popUpTo(start){saveState} + launchSingleTop + restoreState` recipe — those flags are load-bearing (per-tab state preservation, no backstack growth). Don't strip them.
+- `HabitViewModel` is created by the Activity (`by viewModels()`) and **passed down** into `AppNavHost`, so `HabitListScreen` and `InsightsScreen` share one instance and deep-link events delivered to the Activity reach the same ViewModel the UI observes. (`navigation/NavGraph.kt` is a dead empty stub.)
+
+### Layering (feature: `habits`)
+
+- **domain/model** — plain data classes (`Habit`). No framework types. Includes `reminderEnabled: Boolean` and `reminderTime: String?` ("HH:mm").
 - **domain/repository** — abstract `HabitRepository` (contract).
-- **domain/usecases** — one class per action (`AddHabitUseCase`, `GetHabitsUseCase`, `ToggleHabitCompletionUseCase`). ViewModels depend on use cases, not the repository directly.
-- **data/local** — Room: `HabitDatabase` (version 2, `fallbackToDestructiveMigration`), `HabitDao`, `HabitEntity`, `ListConverter` (stores `List<String>` as comma-joined string — so date strings must not contain commas). `HabitMapper.kt` here holds `Habit.toEntity()` / `HabitEntity.toDomain()` extension functions.
-- **data/remote/firestore** — `HabitRemoteDataSource` interface + `HabitRemoteDataSourceImpl`. Wired in dependencies but not currently called from the repository implementation.
+- **domain/usecases** — one class per action: `AddHabitUseCase`, `GetHabitsUseCase`, `ToggleHabitCompletionUseCase`, `UpdateHabitUseCase`, `DeleteHabitUseCase`. ViewModels depend on use cases, not the repository directly.
+- **data/local** — Room: `HabitDatabase` (version 2, `RoomDatabase.kt`), `HabitDao`, `HabitEntity`, `ListConverter` (in `TypeConvertor.kt` — stores `List<String>` as a comma-joined string, so date strings must not contain commas). `HabitMapper.kt` here holds `Habit.toEntity()` / `HabitEntity.toDomain()` extension functions.
+- **data/remote/firestore** — `HabitRemoteDataSource` interface + impl, plus `HabitDto`. Wired in dependencies but not currently called from the repository implementation.
 - **data/repository** — `HabitRepositoryImpl` implements `HabitRepository` against the Room DAO.
-- **presentation** — MVVM with Hilt-injected `HabitViewModel` (`@HiltViewModel`). State is split between `HabitState` (StateFlow) for the habit list and `HabitFormState` (Compose `mutableStateOf`) for the add-habit form. Compose tree follows **atoms/molecules/organisms** under `presentation/habit_list/`. `MainActivity` obtains the ViewModel via `hiltViewModel()`.
+- **presentation** — MVVM with Hilt-injected `HabitViewModel` (`@HiltViewModel`). State is split between `HabitState` (StateFlow `uiState`, in `states/HabitListState.kt`) for the habit list and `HabitFormState` (Compose `mutableStateOf formState`) for the add/edit form. Compose tree follows **atoms/molecules/organisms** under `presentation/habit_list/`.
+
+### Other feature layers
+
+- **`insights`** — `InsightsScreen` reads the shared `HabitViewModel.uiState` and runs `InsightsCalculator` (pure domain logic: completion rate, streaks, best day) to derive stats; presentation-only `InsightsUiState` + card components. No repository/use cases of its own.
+- **`reminders`** — `HabitReminderScheduler` (`@Singleton`) arms per-habit alarms via `AlarmManagerCompat.setAndAllowWhileIdle` (inexact, doze-friendly, no exact-alarm permission needed); `HabitReminderReceiver` (BroadcastReceiver) posts the notification; `BootReceiver` re-schedules after reboot/app-update; `ReminderConstants` holds channel + intent-extra + deep-link keys. Notification taps deep-link into `MainActivity.handleDeepLink` → `HabitViewModel.openHabitDetail(id)`, which stashes `pendingDetailHabitId` in state for the list screen to open the detail sheet.
+- **`settings`** — `SettingsRepository` over DataStore Preferences exposes `themePreference: Flow<ThemePreference>` (Light/Dark/System) and `notificationsEnabled: Flow<Boolean>` (master reminder switch), with suspend setters. `SettingsViewModel` feeds the theme flow into `MainActivity`, which chooses `darkTheme` for `Habit_TrackerTheme`.
 
 ### Dependency injection
 
-Three Hilt modules in `di/`:
+Hilt modules in `di/`:
 
-- `DatabaseModule` (`SingletonComponent`) — provides `HabitDatabase` and `HabitDao`.
+- `DatabaseModule` (`SingletonComponent`) — provides `HabitDatabase` (built with `.addMigrations(HabitDatabase.MIGRATION_1_2)`) and `HabitDao`.
 - `RepositoryModule` (`SingletonComponent`) — binds `HabitRepository` → `HabitRepositoryImpl`.
-- `UseCaseModule` (`ViewModelComponent`, `@ViewModelScoped`) — provides each use case. When adding a new use case, register it here, not at the injection site.
+- `SettingsModule` (`SingletonComponent`) — provides the `DataStore<Preferences>` and `SettingsRepository`.
+- `UseCaseModule` (`ViewModelComponent`, `@ViewModelScoped`) — provides each habit use case. When adding a new use case, register it here, not at the injection site.
+
+`HabitReminderScheduler` is constructor-injected as a `@Singleton` (no explicit module).
 
 ### Theming
 
-Custom theme wrapper in `ui/theme/`. Access values via the `AppTheme` singleton:
+Custom theme wrapper in `ui/theme/`. `Habit_TrackerTheme(darkTheme = …)` is driven by the persisted `ThemePreference`. Access values via the `AppTheme` singleton:
 
 ```kotlin
 style = AppTheme.textStyles.titleLarge
 color = AppTheme.colors.textPrimary
 ```
 
-These resolve from `LocalAppColors` / `LocalAppTextStyles` composition locals provided by `Habit_TrackerTheme`. Do not hardcode colors or text styles in composables — go through `AppTheme`.
+These resolve from `LocalAppColors` / `LocalAppTextStyles` composition locals. Do not hardcode colors or text styles in composables — go through `AppTheme`.
 
-### Add-habit flow (end-to-end example)
+### Add / edit habit flow
 
-1. FAB in `HabitListScreen` opens `AddHabitSheet` (ModalBottomSheet).
-2. Form fields call `HabitViewModel.onNameChanged` / `onDescriptionChanged` / `onCategoryChanged` / `onColorSelected`, each mutating `formState: HabitFormState`.
-3. Submit calls `HabitViewModel.addHabit { ... }` which builds a `Habit` (id via `HabitUtil.generateUniqueId()` — UUID), invokes `AddHabitUseCase`, resets `formState`, re-fetches via `getHabits()`, then runs the `onHabitAdded` callback.
+1. FAB in `HabitListScreen` opens `AddHabitSheet` (ModalBottomSheet); editing an existing habit calls `HabitViewModel.startEditingHabit(habit)` first to prefill `formState`.
+2. Form fields call `onNameChanged` / `onDescriptionChanged` / `onCategoryChanged` / `onColorSelected` / `onReminderEnabledChanged` / `onReminderTimeChanged`, each mutating `formState`.
+3. Submit calls `HabitViewModel.saveHabit { … }` — one method handles **both** add and edit (keyed on `formState.editingHabitId` + `editingHabitSnapshot`). It builds/updates the `Habit` (new ids via `HabitUtil.generateUniqueId()`), invokes `AddHabitUseCase`/`UpdateHabitUseCase`, then **cancels and re-arms the reminder alarm** (gated on both the habit's own `reminderEnabled` and the global `settingsRepository.notificationsEnabled`), resets the form, and re-fetches via `getHabits()`.
 
 ### Completion toggle
 
-`HabitViewModel.updateHabit(habitId, date)` optimistically rewrites the in-memory `HabitState.habits` list (toggling the yyyy-MM-dd date string in `completedDates`), then persists via `ToggleHabitCompletionUseCase` → `HabitRepository.updateHabitCompletion` → `HabitDao.updateHabitCompletion` (targeted `UPDATE ... SET completedDates = ...` query, keyed on business `id`, not Room's `pId`).
+`HabitViewModel.updateHabit(habitId, date)` optimistically rewrites the in-memory `uiState.habits` list (toggling the `yyyy-MM-dd` date string in `completedDates`), then persists via `ToggleHabitCompletionUseCase` → `HabitRepository.updateHabitCompletion` → `HabitDao` (targeted `UPDATE ... SET completedDates = ...`, keyed on business `id`, not Room's `pId`). `deleteHabit` similarly removes optimistically then persists + cancels the alarm; `restoreHabit` re-adds (used for undo).
 
 ## Conventions worth preserving
 
-- Dates are stored as `yyyy-MM-dd` strings everywhere (domain, entity, UI). Do not introduce `LocalDate` into persisted models.
+- Dates are stored as `yyyy-MM-dd` strings everywhere (domain, entity, UI); reminder times are `"HH:mm"` strings. Do not introduce `LocalDate`/`LocalTime` into persisted models.
 - `HabitEntity` has both `pId` (auto-generated Room PK) and `id` (business UUID). Queries and mappers use `id`; `pId` is Room-internal.
-- `HabitUtil` centralises date helpers (`getDatesOfCurrentYear`, `getLast7Days`, etc.) and color ⇄ hex conversion. Reuse these rather than re-deriving in composables.
+- **Room migrations are real now** — bump the DB version and add a `Migration` (see `MIGRATION_1_2`, which added the reminder columns) plus register it in `DatabaseModule`. Do not fall back to destructive migration.
+- `HabitUtil` centralises date helpers (`getDatesOfCurrentYear`, `getLast7Days`, etc.) and color ⇄ hex conversion, plus `generateUniqueId()`. Reuse these rather than re-deriving in composables.
 - Use cases expose `suspend operator fun invoke(...)` — call as `useCase(arg)` or `useCase.invoke(arg)`.
-- Screens that use `java.time.*` APIs are annotated `@RequiresApi(Build.VERSION_CODES.O)` because `minSdk=24`. Maintain this annotation when introducing new date-based UI code, or use desugaring if that changes.
+- Screens/ViewModel code using `java.time.*` are annotated `@RequiresApi(Build.VERSION_CODES.O)` because `minSdk=24`. Maintain this annotation when introducing new date-based code, or use desugaring if that changes.
+- The `habits` `HabitViewModel` is intentionally shared across the Home and Insights tabs — don't swap it for a per-screen `hiltViewModel()` without accounting for deep-link delivery and shared state.
 
 ## Notable design docs
 
-The heatmap work has two companion documents (`IMPLEMENTATION_SUMMARY.md`, `HEATMAP_IMPLEMENTATION.md`) describing a planned `HabitCompletion` / `HeatmapRange` / `HeatmapViewModel` subsystem. Most of those files are **not yet present in `src/`** — only the unit tests (`DateRangeCalculatorTest`, `CompletionMapperTest`) exist. Treat those docs as a design target, not current state; check the tree before citing filenames from them.
+`IMPLEMENTATION_SUMMARY.md` and `HEATMAP_IMPLEMENTATION.md` describe a planned `HabitCompletion` / `HeatmapRange` / `HeatmapViewModel` subsystem. Most of those files are **not yet present in `src/`** — only the unit tests (`DateRangeCalculatorTest`, `CompletionMapperTest`) exist. Treat those docs as a design target, not current state; check the tree before citing filenames from them.

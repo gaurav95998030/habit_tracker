@@ -48,6 +48,27 @@ object HabitUtil{
 
     fun generateUniqueId(): String = UUID.randomUUID().toString()
 
+    /**
+     * The live streak: consecutive completed days ending today, or ending yesterday
+     * when today isn't checked off yet (so a streak stays "alive" until the day passes).
+     * Returns 0 when neither today nor yesterday is completed.
+     */
+    @RequiresApi(Build.VERSION_CODES.O)
+    fun currentStreak(dates: Set<LocalDate>, today: LocalDate = LocalDate.now()): Int {
+        if (dates.isEmpty()) return 0
+        var anchor = when {
+            dates.contains(today) -> today
+            dates.contains(today.minusDays(1)) -> today.minusDays(1)
+            else -> return 0
+        }
+        var count = 0
+        while (dates.contains(anchor)) {
+            count++
+            anchor = anchor.minusDays(1)
+        }
+        return count
+    }
+
     @RequiresApi(Build.VERSION_CODES.O)
     fun maxStreak(dates: Set<LocalDate>): Int {
         if (dates.isEmpty()) return 0

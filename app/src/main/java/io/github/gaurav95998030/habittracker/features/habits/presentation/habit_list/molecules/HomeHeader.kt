@@ -19,6 +19,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.CalendarViewWeek
+import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -38,6 +39,7 @@ fun HomeHeader(
     userName: String,
     viewMode: HeatmapViewMode,
     onToggleViewMode: () -> Unit,
+    onOpenNotifications: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val colors = AppTheme.colors
@@ -77,8 +79,41 @@ fun HomeHeader(
 
         Spacer(modifier = Modifier.width(10.dp))
 
+        IconBubble(
+            icon = Icons.Outlined.Notifications,
+            contentDescription = "Notifications",
+            onClick = onOpenNotifications,
+        )
+
+        Spacer(modifier = Modifier.width(10.dp))
+
         AvatarBubble(
             initial = userName.firstOrNull()?.uppercaseChar()?.toString() ?: "?"
+        )
+    }
+}
+
+@Composable
+private fun IconBubble(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    contentDescription: String,
+    onClick: () -> Unit,
+) {
+    val colors = AppTheme.colors
+    Box(
+        modifier = Modifier
+            .size(44.dp)
+            .clip(CircleShape)
+            .background(colors.surface)
+            .border(width = 1.dp, color = colors.divider, shape = CircleShape)
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = contentDescription,
+            tint = colors.textSecondary,
+            modifier = Modifier.size(20.dp),
         )
     }
 }

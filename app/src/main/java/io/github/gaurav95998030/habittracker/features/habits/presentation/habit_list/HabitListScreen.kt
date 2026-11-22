@@ -55,6 +55,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun HabitListScreen(
     viewModel: HabitViewModel,
+    onOpenNotifications: () -> Unit = {},
 ){
     val sheetState = rememberModalBottomSheetState(
         skipPartiallyExpanded = true
@@ -134,7 +135,8 @@ fun HabitListScreen(
                         viewModel.startEditingHabit(habit)
                         showSheet = true
                     },
-                    onDeleteHabit = onDeleteHabit
+                    onDeleteHabit = onDeleteHabit,
+                    onOpenNotifications = onOpenNotifications,
                 )
             }
         }
