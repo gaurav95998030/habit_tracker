@@ -14,11 +14,20 @@ import androidx.activity.viewModels
 import androidx.annotation.RequiresApi
 import androidx.core.content.ContextCompat
 import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalView
+import androidx.core.view.WindowCompat
+import io.github.gaurav95998030.habittracker.features.onboarding.presentation.OnboardingResult
+import io.github.gaurav95998030.habittracker.features.onboarding.presentation.OnboardingScreen
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.gaurav95998030.habittracker.features.habits.presentation.viewmodel.HabitViewModel
 import io.github.gaurav95998030.habittracker.features.reminders.ReminderConstants
@@ -58,10 +67,45 @@ class MainActivity : ComponentActivity() {
                 ThemePreference.Dark -> true
                 ThemePreference.System -> isSystemInDarkTheme()
             }
+            val onboarded by settingsViewModel.onboardingCompleted.collectAsStateWithLifecycle()
+            // Captured on the first resolved value: only launches that *start*
+            // onboarded may auto-show the widget nudge.
+            var startedOnboarded by remember { mutableStateOf<Boolean?>(null) }
+            LaunchedEffect(onboarded) { if (startedOnboarded == null && onboarded != null) startedOnboarded = onboarded }
+
+            // Status/nav bar icons follow the in-app theme, not the system one.
+            val view = LocalView.current
+            SideEffect {
+                WindowCompat.getInsetsController(window, view).apply {
+                    isAppearanceLightStatusBars = !isDark
+                    isAppearanceLightNavigationBars = !isDark
+                }
+            }
+
             Habit_TrackerTheme(darkTheme = isDark) {
-                MainScreen(habitViewModel = viewModel)
+                Box(Modifier.fillMaxSize().background(AppTheme.colors.background)) {
+                    when (onboarded) {
+                        null -> Unit // first DataStore read in flight — blank, no flash
+                        false -> OnboardingScreen(onFinish = ::finishOnboarding)
+                        true -> MainScreen(
+                            habitViewModel = viewModel,
+                            settingsViewModel = settingsViewModel,
+                            widgetPromoEligible = startedOnboarded == true,
+                        )
+                    }
+                }
             }
         }
+    }
+
+    private fun finishOnboarding(result: OnboardingResult) {
+        settingsViewModel.completeOnboarding(result.name, result.categories)
+        viewModel.addOnboardingHabit(
+            name = result.habitName,
+            category = result.habitCategory,
+            colorHex = result.habitColorHex,
+            icon = result.habitIcon,
+        )
     }
 
     private fun requestNotificationPermissionIfNeeded() {
@@ -106,23 +150,5 @@ class MainActivity : ComponentActivity() {
         // Clear so we don't re-fire on configuration changes / re-creation.
         intent.removeExtra(ReminderConstants.EXTRA_OPEN_HABIT_DETAIL)
         intent.data = null
-    }
-}
-
-@Composable
-fun Greeting(name: String, modifier: Modifier = Modifier) {
-    Text(
-        text = "Hello $name!",
-        style = AppTheme.textStyles.titleLarge,
-        color = AppTheme.colors.textPrimary,
-        modifier = modifier
-    )
-}
-
-@Preview(showBackground = true)
-@Composable
-fun GreetingPreview() {
-    Habit_TrackerTheme {
-        Greeting("Habit Tracker")
     }
 }

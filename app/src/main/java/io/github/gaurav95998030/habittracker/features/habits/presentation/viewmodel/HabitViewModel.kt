@@ -7,6 +7,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import io.github.gaurav95998030.habittracker.features.habits.HabitCatalog
 import io.github.gaurav95998030.habittracker.features.habits.HabitUtil
 import io.github.gaurav95998030.habittracker.features.habits.domain.usecases.AddHabitUseCase
 import io.github.gaurav95998030.habittracker.features.habits.domain.usecases.DeleteHabitUseCase
@@ -71,7 +72,7 @@ class HabitViewModel @Inject constructor(
             isValid = habit.name.isNotBlank(),
             editingHabitId = habit.id,
             reminderEnabled = habit.reminderEnabled,
-            reminderTime = habit.reminderTime
+            reminderTime = habit.reminderTime ?: HabitCatalog.DEFAULT_REMINDER_TIME
         )
     }
 
@@ -132,7 +133,7 @@ class HabitViewModel @Inject constructor(
                 // previously-armed alarm stops firing, but we don't re-arm.
                 reminderScheduler.cancel(savedHabit.id)
                 val masterEnabled = settingsRepository.notificationsEnabled.first()
-                if (masterEnabled && savedHabit.reminderEnabled && savedHabit.reminderTime != null) {
+                if (masterEnabled && savedHabit.isActive && savedHabit.reminderEnabled && savedHabit.reminderTime != null) {
                     reminderScheduler.schedule(savedHabit)
                 }
 
@@ -241,6 +242,71 @@ class HabitViewModel @Inject constructor(
         }
     }
 
+    /** Check-circle on a tile / notification center "Done": toggle today. */
+    fun toggleToday(habitId: String) = updateHabit(habitId, LocalDate.now())
+
+    /** Month calendar in the detail sheet: toggle any past/present day ("yyyy-MM-dd"). */
+    fun toggleDay(habitId: String, date: String) {
+        val parsed = runCatching { LocalDate.parse(date) }.getOrNull() ?: return
+        if (parsed.isAfter(LocalDate.now())) return
+        updateHabit(habitId, parsed)
+    }
+
+    /**
+     * Pause / resume. Pausing keeps history but drops the habit out of today's
+     * progress, insights and reminders (its alarm is cancelled); resuming re-arms it.
+     */
+    fun setHabitActive(habit: Habit, active: Boolean) {
+        val updated = habit.copy(isActive = active, updatedDate = Instant.now().toString())
+        _uiState.update { state ->
+            state.copy(habits = state.habits?.map { if (it.id == habit.id) updated else it })
+        }
+        viewModelScope.launch {
+            try {
+                updateHabitUseCase.invoke(updated)
+                reminderScheduler.cancel(updated.id)
+                val masterEnabled = settingsRepository.notificationsEnabled.first()
+                if (active && masterEnabled && updated.reminderEnabled && updated.reminderTime != null) {
+                    reminderScheduler.schedule(updated)
+                }
+                refreshWidget()
+            } catch (e: Exception) {
+                Log.e("HabitViewModel", "Error updating habit active state", e)
+            }
+        }
+    }
+
+    /** Creates the first habit picked in onboarding (no reminder — set it later). */
+    fun addOnboardingHabit(name: String, category: String, colorHex: String, icon: String?) {
+        viewModelScope.launch {
+            try {
+                val now = Instant.now().toString()
+                addHabitUseCase.invoke(
+                    Habit(
+                        id = HabitUtil.generateUniqueId(),
+                        userId = "",
+                        name = name,
+                        description = "",
+                        completedDates = emptyList(),
+                        color = colorHex,
+                        category = category,
+                        createdDate = now,
+                        updatedDate = now,
+                        maxStreak = 0,
+                        isActive = true,
+                        reminderEnabled = false,
+                        reminderTime = null,
+                        icon = icon,
+                    )
+                )
+                getHabits()
+                refreshWidget()
+            } catch (e: Exception) {
+                Log.e("HabitViewModel", "Error adding onboarding habit", e)
+            }
+        }
+    }
+
     fun deleteHabit(habit: Habit) {
         _uiState.update { state ->
             state.copy(habits = state.habits?.filterNot { it.id == habit.id } ?: emptyList())
@@ -261,7 +327,7 @@ class HabitViewModel @Inject constructor(
             try {
                 addHabitUseCase.invoke(habit)
                 val masterEnabled = settingsRepository.notificationsEnabled.first()
-                if (masterEnabled && habit.reminderEnabled && habit.reminderTime != null) {
+                if (masterEnabled && habit.isActive && habit.reminderEnabled && habit.reminderTime != null) {
                     reminderScheduler.schedule(habit)
                 }
                 getHabits()
@@ -308,8 +374,13 @@ class HabitViewModel @Inject constructor(
         formState = formState.copy(
             reminderEnabled = enabled,
             // default to 9:00 AM when first enabling without an existing time
-            reminderTime = if (enabled && formState.reminderTime == null) "09:00" else formState.reminderTime
+            reminderTime = if (enabled && formState.reminderTime == null) HabitCatalog.DEFAULT_REMINDER_TIME else formState.reminderTime
         )
+    }
+
+    /** Quick-time chip in the add sheet ("HH:mm"). */
+    fun onReminderTimeSelected(time: String) {
+        formState = formState.copy(reminderEnabled = true, reminderTime = time)
     }
 
     fun onReminderTimeChanged(hour: Int, minute: Int) {

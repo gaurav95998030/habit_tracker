@@ -15,6 +15,8 @@ Android habit-tracking app. Kotlin + Jetpack Compose (Material3), Hilt DI, Room 
 
 Use the Gradle wrapper. Firebase is enabled via `app/google-services.json` (checked in).
 
+**JDK:** Gradle/Kotlin 2.0.21 cannot run on JDK 25 (fails with a bare `25.0.4` error) — and Android Studio's bundled JBR on this machine is 25. Build with JDK 21: `export JAVA_HOME=~/Library/Java/JavaVirtualMachines/jbr-21.0.11/Contents/Home`.
+
 The build has a **product-flavor dimension** (`dev`, `prod`) crossed with build types (`debug`, `release`), so variants are `devDebug`, `devRelease`, `prodDebug`, `prodRelease`. `dev` gets a `.dev` applicationId suffix; only `prod` matches the checked-in `google-services.json`. The umbrella `assembleDebug` builds every flavor's debug; prefer the flavor-specific task when installing.
 
 ```bash
@@ -39,30 +41,35 @@ Release signing is read from `~/.gradle/gradle.properties` (`RELEASE_STORE_FILE`
 
 Feature-first Clean Architecture. Everything lives under `io.github.gaurav95998030.habittracker.features.<feature>.{data,domain,presentation}` with Hilt binding layers in `di/`, cross-feature navigation in `navigation/`, shared UI atoms in `commons/ui/`, and theming in `ui/theme/`.
 
-Features: **`habits`** (the core), **`insights`** (stats screen), **`reminders`** (alarm-driven notifications), **`settings`** (theme + master notification switch).
+Features: **`habits`** (the core), **`insights`** (stats screen), **`reminders`** (alarm-driven notifications + Notification Center), **`settings`** (theme, profile name, master notification switch, quiet hours), **`onboarding`** (4-step first run), **`widget`** (RemoteViews home-screen widget + Compose "add the widget" nudge).
+
+The UI implements the **HabitForge "Aurora"** design (source: a bundled React prototype, `HabitForge-All-Screens.html`). Screens: onboarding (welcome/name/categories/first habit), Home (loading/empty/list), habit detail + add/edit sheets, Insights, Settings, Notification Center, widget nudge sheet, and the reminder notification (Mark done / Snooze 1h).
 
 ### Navigation
 
+- `MainActivity` gates on `SettingsViewModel.onboardingCompleted` (`null` = loading → blank; `false` → `OnboardingScreen`; `true` → `MainScreen`). Installs that already have habits are auto-marked onboarded.
 - `MainScreen` owns the `NavController`, derives the selected tab from the current backstack entry, and renders a `Scaffold` with `AppBottomBar` + `AppNavHost`.
 - `TopLevelDestination` (enum) is the single source of truth for the three tabs: `Home` (route `home`, labelled "Today" → `HabitListScreen`), `Insights` (→ `InsightsScreen`), `Settings` (→ `SettingsScreen`). Keep the bar and the NavHost in sync through this enum.
 - The tab-switch transaction in `MainScreen.onTabSelected` uses the standard `popUpTo(start){saveState} + launchSingleTop + restoreState` recipe — those flags are load-bearing (per-tab state preservation, no backstack growth). Don't strip them.
-- `HabitViewModel` is created by the Activity (`by viewModels()`) and **passed down** into `AppNavHost`, so `HabitListScreen` and `InsightsScreen` share one instance and deep-link events delivered to the Activity reach the same ViewModel the UI observes. (`navigation/NavGraph.kt` is a dead empty stub.)
+- The bottom bar is hidden on non-tab routes (`NOTIFICATIONS_ROUTE`). `MainScreen` also hosts the widget nudge (`WidgetPromoSheet`, once per install + from Settings).
+- `HabitViewModel` and `SettingsViewModel` are created by the Activity (`by viewModels()`) and **passed down** into `AppNavHost`, so `HabitListScreen` and `InsightsScreen` share one instance and deep-link events delivered to the Activity reach the same ViewModel the UI observes. (`navigation/NavGraph.kt` is a dead empty stub.)
 
 ### Layering (feature: `habits`)
 
-- **domain/model** — plain data classes (`Habit`). No framework types. Includes `reminderEnabled: Boolean` and `reminderTime: String?` ("HH:mm").
+- **domain/model** — plain data classes (`Habit`). No framework types. Includes `reminderEnabled: Boolean`, `reminderTime: String?` ("HH:mm"), `isActive` (false = paused: excluded from progress/insights/reminders) and `icon: String?` (Phosphor name, e.g. `"ph-drop"`; null → category icon via `HabitCatalog.iconFor`).
+- **`HabitCatalog`** — the 8 design categories + icons, onboarding starters, quick reminder times, legacy-category → icon fallback. **`domain/HabitStats`** — streaks, heat levels, `createdOn` (createdDate is an ISO *instant*, not `yyyy-MM-dd`).
 - **domain/repository** — abstract `HabitRepository` (contract).
 - **domain/usecases** — one class per action: `AddHabitUseCase`, `GetHabitsUseCase`, `ToggleHabitCompletionUseCase`, `UpdateHabitUseCase`, `DeleteHabitUseCase`. ViewModels depend on use cases, not the repository directly.
-- **data/local** — Room: `HabitDatabase` (version 2, `RoomDatabase.kt`), `HabitDao`, `HabitEntity`, `ListConverter` (in `TypeConvertor.kt` — stores `List<String>` as a comma-joined string, so date strings must not contain commas). `HabitMapper.kt` here holds `Habit.toEntity()` / `HabitEntity.toDomain()` extension functions.
+- **data/local** — Room: `HabitDatabase` (version 3, `RoomDatabase.kt`; v3 added the nullable `icon` column), `HabitDao`, `HabitEntity`, `ListConverter` (in `TypeConvertor.kt` — stores `List<String>` as a comma-joined string, so date strings must not contain commas). `HabitMapper.kt` here holds `Habit.toEntity()` / `HabitEntity.toDomain()` extension functions.
 - **data/remote/firestore** — `HabitRemoteDataSource` interface + impl, plus `HabitDto`. Wired in dependencies but not currently called from the repository implementation.
 - **data/repository** — `HabitRepositoryImpl` implements `HabitRepository` against the Room DAO.
-- **presentation** — MVVM with Hilt-injected `HabitViewModel` (`@HiltViewModel`). State is split between `HabitState` (StateFlow `uiState`, in `states/HabitListState.kt`) for the habit list and `HabitFormState` (Compose `mutableStateOf formState`) for the add/edit form. Compose tree follows **atoms/molecules/organisms** under `presentation/habit_list/`.
+- **presentation** — MVVM with Hilt-injected `HabitViewModel` (`@HiltViewModel`). State is split between `HabitState` (StateFlow `uiState`, in `states/HabitListState.kt`) for the habit list and `HabitFormState` (Compose `mutableStateOf formState`) for the add/edit form. `HabitListScreen` + `habit_list/organisms/{AddHabitSheet,HabitDetailSheet}`; reusable pieces in `presentation/components/` (`HabitTile`, `HabitViz`: `WeeklyGrid`, `CheckCircle`, `YearHeatmap`, `MonthCalendar`, `StreakBadge`).
 
 ### Other feature layers
 
-- **`insights`** — `InsightsScreen` reads the shared `HabitViewModel.uiState` and runs `InsightsCalculator` (pure domain logic: completion rate, streaks, best day) to derive stats; presentation-only `InsightsUiState` + card components. No repository/use cases of its own.
-- **`reminders`** — `HabitReminderScheduler` (`@Singleton`) arms per-habit alarms via `AlarmManagerCompat.setAndAllowWhileIdle` (inexact, doze-friendly, no exact-alarm permission needed); `HabitReminderReceiver` (BroadcastReceiver) posts the notification; `BootReceiver` re-schedules after reboot/app-update; `ReminderConstants` holds channel + intent-extra + deep-link keys. Notification taps deep-link into `MainActivity.handleDeepLink` → `HabitViewModel.openHabitDetail(id)`, which stashes `pendingDetailHabitId` in state for the list screen to open the detail sheet.
-- **`settings`** — `SettingsRepository` over DataStore Preferences exposes `themePreference: Flow<ThemePreference>` (Light/Dark/System) and `notificationsEnabled: Flow<Boolean>` (master reminder switch), with suspend setters. `SettingsViewModel` feeds the theme flow into `MainActivity`, which chooses `darkTheme` for `Habit_TrackerTheme`.
+- **`insights`** — `InsightsScreen` reads the shared `HabitViewModel.uiState` and runs `InsightsCalculator` (pure: 8 rolling-week completion % counted only from each habit's creation date, all-time best weekday, best-streak leaderboard; active habits only). No repository/use cases of its own.
+- **`reminders`** — `HabitReminderScheduler` (`@Singleton`) arms per-habit alarms via `AlarmManagerCompat.setAndAllowWhileIdle` (inexact, doze-friendly, no exact-alarm permission needed); `HabitReminderReceiver` (BroadcastReceiver) posts the notification; `BootReceiver` re-schedules after reboot/app-update; `ReminderConstants` holds channel + intent-extra + deep-link keys. Notification taps deep-link into `MainActivity.handleDeepLink` → `HabitViewModel.openHabitDetail(id)`, which stashes `pendingDetailHabitId` in state for the list screen to open the detail sheet. Notification actions: "Mark done" and "Snooze 1h" (`scheduleSnooze` — a separate one-shot alarm, `ACTION_FIRE_SNOOZED`). The receiver skips posting for paused habits and inside quiet hours (but still re-arms the daily alarm). `presentation/NotificationCenterBuilder` derives the last 9 days of reminders (Upcoming/Pending/Done/Missed) from the habit list — there is no history table; `pendingCount` drives the Home bell badge.
+- **`settings`** — `SettingsRepository` over DataStore Preferences exposes `themePreference` (Light/Dark/System), `notificationsEnabled` (master reminder switch), `userName`, `onboardingCompleted`, `focusCategories` (float first in the add sheet), `widgetPromoSeen`, and `quietHours` (`QuietHours`, window may wrap midnight), with suspend setters. `SettingsViewModel` feeds the theme flow into `MainActivity`, which chooses `darkTheme` for `Habit_TrackerTheme`.
 
 ### Dependency injection
 
@@ -77,7 +84,14 @@ Hilt modules in `di/`:
 
 ### Theming
 
-Custom theme wrapper in `ui/theme/`. `Habit_TrackerTheme(darkTheme = …)` is driven by the persisted `ThemePreference`. Access values via the `AppTheme` singleton:
+Custom theme wrapper in `ui/theme/`. `Habit_TrackerTheme(darkTheme = …)` is driven by the persisted `ThemePreference` (the M3 `ColorScheme` is derived from the same tokens; no dynamic color). `MainActivity` sets status/nav-bar icon contrast from the in-app theme.
+
+- `AppColors` — Aurora tokens incl. `isDark`, `surface2`, `glassFill`, `glassBorder`, `heatEmpty`, `scrim`, `fieldFill`. `AppTextStyles` — Clash Display (display/titles) + Space Grotesk (body/labels) in `res/font/`.
+- `Tokens.kt` — `Accents` (8 habit hues + legible `ink`; `colorOf(hex)`/`inkFor` tolerate legacy colors), `AppShapes`, `AppMotion`, and `Modifier.glow(...)` (dark-mode colored glow). Put `glow` **outside** any `alpha()` — an alpha layer clips it.
+- Icons are **Phosphor** glyphs from subset icon fonts (`res/font/phosphor_{regular,bold,fill}.ttf`), referenced via `PhIcons` constants / `PhIcons.byName("ph-x")` and drawn with `commons/ui/PhIcon`. The fonts contain only the glyphs listed in `PhIcons.kt`; adding an icon means re-subsetting the fonts from the Phosphor release and adding the constant.
+- Shared primitives in `commons/ui/` (`Aurora.kt`: `HfButton`, `HfChip`, `HfField`, `HfToggle`, `HfSwatches`, `HfSegRadio`, `HfCard`, `HfShimmer`, …; `HfSheet.kt`, `HfTimePickerDialog.kt`, `Charts.kt`: `RingStat`, `WeekBars`; `Logo.kt`).
+
+Access values via the `AppTheme` singleton:
 
 ```kotlin
 style = AppTheme.textStyles.titleLarge
@@ -88,13 +102,13 @@ These resolve from `LocalAppColors` / `LocalAppTextStyles` composition locals. D
 
 ### Add / edit habit flow
 
-1. FAB in `HabitListScreen` opens `AddHabitSheet` (ModalBottomSheet); editing an existing habit calls `HabitViewModel.startEditingHabit(habit)` first to prefill `formState`.
-2. Form fields call `onNameChanged` / `onDescriptionChanged` / `onCategoryChanged` / `onColorSelected` / `onReminderEnabledChanged` / `onReminderTimeChanged`, each mutating `formState`.
+1. FAB in `HabitListScreen` opens `AddHabitSheet` (ModalBottomSheet); editing an existing habit (Edit in the detail sheet) calls `HabitViewModel.startEditingHabit(habit)` first to prefill `formState`. Blank form defaults: "Mind", Lime, reminder on at 07:30.
+2. Form fields call `onNameChanged` / `onDescriptionChanged` / `onCategoryChanged` / `onColorSelected` / `onReminderEnabledChanged` / `onReminderTimeSelected` (quick chips) / `onReminderTimeChanged`, each mutating `formState`.
 3. Submit calls `HabitViewModel.saveHabit { … }` — one method handles **both** add and edit (keyed on `formState.editingHabitId` + `editingHabitSnapshot`). It builds/updates the `Habit` (new ids via `HabitUtil.generateUniqueId()`), invokes `AddHabitUseCase`/`UpdateHabitUseCase`, then **cancels and re-arms the reminder alarm** (gated on both the habit's own `reminderEnabled` and the global `settingsRepository.notificationsEnabled`), resets the form, and re-fetches via `getHabits()`.
 
 ### Completion toggle
 
-`HabitViewModel.updateHabit(habitId, date)` optimistically rewrites the in-memory `uiState.habits` list (toggling the `yyyy-MM-dd` date string in `completedDates`), then persists via `ToggleHabitCompletionUseCase` → `HabitRepository.updateHabitCompletion` → `HabitDao` (targeted `UPDATE ... SET completedDates = ...`, keyed on business `id`, not Room's `pId`). `deleteHabit` similarly removes optimistically then persists + cancels the alarm; `restoreHabit` re-adds (used for undo).
+`HabitViewModel.updateHabit(habitId, date)` optimistically rewrites the in-memory `uiState.habits` list (toggling the `yyyy-MM-dd` date string in `completedDates`), then persists via `ToggleHabitCompletionUseCase` → `HabitRepository.updateHabitCompletion` → `HabitDao` (targeted `UPDATE ... SET completedDates = ...`, keyed on business `id`, not Room's `pId`). `deleteHabit` similarly removes optimistically then persists + cancels the alarm; `restoreHabit` re-adds (used for undo). `toggleToday(id)` / `toggleDay(id, "yyyy-MM-dd")` wrap it for the check circle and the detail calendar (future days rejected). `setHabitActive(habit, active)` pauses/resumes (cancels / re-arms the alarm).
 
 ## Conventions worth preserving
 
@@ -108,4 +122,4 @@ These resolve from `LocalAppColors` / `LocalAppTextStyles` composition locals. D
 
 ## Notable design docs
 
-`IMPLEMENTATION_SUMMARY.md` and `HEATMAP_IMPLEMENTATION.md` describe a planned `HabitCompletion` / `HeatmapRange` / `HeatmapViewModel` subsystem. Most of those files are **not yet present in `src/`** — only the unit tests (`DateRangeCalculatorTest`, `CompletionMapperTest`) exist. Treat those docs as a design target, not current state; check the tree before citing filenames from them.
+`IMPLEMENTATION_SUMMARY.md` and `HEATMAP_IMPLEMENTATION.md` describe a planned `HabitCompletion` / `HeatmapRange` / `HeatmapViewModel` subsystem. Most of those files are **not yet present in `src/`** — only the unit tests (`DateRangeCalculatorTest`, `CompletionMapperTest`) exist, and **they don't compile**, which breaks `./gradlew test` as a whole. Treat those docs as a design target, not current state; check the tree before citing filenames from them. The redesign's logic is covered by `src/test/.../redesign/RedesignLogicTest.kt` (move the two broken tests aside to run it).

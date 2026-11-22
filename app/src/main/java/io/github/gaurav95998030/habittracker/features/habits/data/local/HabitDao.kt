@@ -25,7 +25,9 @@ interface HabitDao {
         category = :category,
         updatedDate = :updatedDate,
         reminderEnabled = :reminderEnabled,
-        reminderTime = :reminderTime
+        reminderTime = :reminderTime,
+        icon = :icon,
+        isActive = :isActive
     WHERE id = :id
 """)
     suspend fun updateHabitFields(
@@ -36,7 +38,9 @@ interface HabitDao {
         category: String,
         updatedDate: String,
         reminderEnabled: Boolean,
-        reminderTime: String?
+        reminderTime: String?,
+        icon: String?,
+        isActive: Boolean
     )
 
     @Query("""

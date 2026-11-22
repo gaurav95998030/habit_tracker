@@ -1,74 +1,64 @@
 package io.github.gaurav95998030.habittracker.ui.theme
 
-import android.app.Activity
-import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.dynamicDarkColorScheme
-import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 
-private val DarkColorScheme = darkColorScheme(
-    primary = Color(0xFFCDF564),
-    onPrimary = Color(0xFF0B1500),
-    secondary = Color(0xFF7BC9FF),
-    tertiary = Color(0xFFCDF564),
-    background = Color(0xFF050505),
-    surface = Color(0xFF111111),
-    onBackground = Color(0xFFF2F2F2),
-    onSurface = Color(0xFFF2F2F2),
-)
-
-private val LightColorScheme = lightColorScheme(
-    primary = Purple40,
-    secondary = PurpleGrey40,
-    tertiary = Pink40
-)
+/** Material scheme derived from the Aurora tokens so stock M3 widgets match. */
+private fun AppColors.toMaterialScheme(): ColorScheme {
+    val base = if (isDark) darkColorScheme() else lightColorScheme()
+    return base.copy(
+        primary = primary,
+        onPrimary = onPrimary,
+        primaryContainer = primary.copy(alpha = 0.18f),
+        onPrimaryContainer = textPrimary,
+        secondary = secondary,
+        onSecondary = onSecondary,
+        tertiary = secondary,
+        background = background,
+        onBackground = onBackground,
+        surface = surface2,
+        onSurface = onSurface,
+        surfaceVariant = surface,
+        onSurfaceVariant = textSecondary,
+        surfaceContainer = surface2,
+        surfaceContainerHigh = surface2,
+        surfaceContainerHighest = surface,
+        surfaceContainerLow = surface,
+        inverseSurface = textPrimary,
+        inverseOnSurface = background,
+        inversePrimary = primary,
+        error = error,
+        onError = onError,
+        outline = textTertiary,
+        outlineVariant = divider,
+        scrim = scrim,
+    )
+}
 
 /**
- * Main theme composable for the Habit Tracker app.
- * Provides both Material 3 theme and custom AppTheme (colors + text styles).
- *
- * @param darkTheme Whether to use dark theme. Defaults to system setting.
- * @param dynamicColor Whether to use dynamic color on Android 12+. Defaults to true.
- * @param content The composable content to be themed.
+ * Root theme. Provides the HabitForge tokens via [AppTheme] plus a matching
+ * Material 3 theme. Dynamic color is intentionally not supported — the Aurora
+ * palette is the source of truth.
  */
 @Composable
 fun Habit_TrackerTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    // Dynamic color is available on Android 12+. Disabled by default so the
-    // designed lime/green accent palette is the source of truth instead of the
-    // device wallpaper.
-    dynamicColor: Boolean = false,
-    content: @Composable () -> Unit
+    content: @Composable () -> Unit,
 ) {
-    val colorScheme = when {
-        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-            val context = LocalContext.current
-            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-        }
-
-        darkTheme -> DarkColorScheme
-        else -> LightColorScheme
-    }
-
-    // Select AppColors based on theme
     val appColors = if (darkTheme) DarkAppColors else LightAppColors
-
-    // Provide custom theme values via CompositionLocal
     CompositionLocalProvider(
         LocalAppColors provides appColors,
-        LocalAppTextStyles provides DefaultAppTextStyles
+        LocalAppTextStyles provides DefaultAppTextStyles,
     ) {
         MaterialTheme(
-            colorScheme = colorScheme,
+            colorScheme = appColors.toMaterialScheme(),
             typography = Typography,
-            content = content
+            content = content,
         )
     }
 }

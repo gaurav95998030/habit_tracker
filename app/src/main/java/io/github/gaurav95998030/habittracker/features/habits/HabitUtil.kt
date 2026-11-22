@@ -48,6 +48,16 @@ object HabitUtil{
 
     fun generateUniqueId(): String = UUID.randomUUID().toString()
 
+    /** "21:30" → "9:30 PM". Returns the input unchanged when it isn't "HH:mm". */
+    fun formatTime12h(hhmm: String?): String {
+        if (hhmm == null) return ""
+        val parts = hhmm.split(":")
+        val h = parts.getOrNull(0)?.toIntOrNull() ?: return hhmm
+        val m = parts.getOrNull(1)?.toIntOrNull() ?: return hhmm
+        val h12 = if (h % 12 == 0) 12 else h % 12
+        return "%d:%02d %s".format(h12, m, if (h < 12) "AM" else "PM")
+    }
+
     /**
      * The live streak: consecutive completed days ending today, or ending yesterday
      * when today isn't checked off yet (so a streak stays "alive" until the day passes).

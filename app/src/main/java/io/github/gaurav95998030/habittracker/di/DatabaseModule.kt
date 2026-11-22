@@ -25,7 +25,7 @@ object DatabaseModule {
             HabitDatabase::class.java,
             "habit_database"
         )
-            .addMigrations(HabitDatabase.MIGRATION_1_2)
+            .addMigrations(HabitDatabase.MIGRATION_1_2, HabitDatabase.MIGRATION_2_3)
             .build()
     }
 

@@ -5,16 +5,23 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 
 /**
- * Immutable data class containing semantic color tokens for the app.
- * Provides theme-aware colors that adapt to light/dark mode.
+ * Semantic color tokens — the HabitForge "Aurora" palette (1:1 with the design's
+ * tokens.jsx). Dark is the hero theme; light is its daylight counterpart.
+ *
+ * The aurora-specific tokens ([surface2], [glassFill], [glassBorder], [heatEmpty],
+ * [scrim]) carry translucency, so they read correctly layered over any background.
  */
 @Immutable
 data class AppColors(
+    val isDark: Boolean,
     val primary: Color,
     val primaryVariant: Color,
     val secondary: Color,
     val background: Color,
+    /** Base card surface. */
     val surface: Color,
+    /** Raised / sheet surface. */
+    val surface2: Color,
     val error: Color,
     val textPrimary: Color,
     val textSecondary: Color,
@@ -26,57 +33,70 @@ data class AppColors(
     val onError: Color,
     val divider: Color,
     val success: Color,
-    val warning: Color
+    val warning: Color,
+    val glassBorder: Color,
+    val glassFill: Color,
+    /** Empty cell in heatmaps, week dots and ring tracks. */
+    val heatEmpty: Color,
+    val scrim: Color,
+    /** Background of text fields and grouped inputs. */
+    val fieldFill: Color,
 )
 
-/**
- * Light theme color palette
- */
+internal val DarkAppColors = AppColors(
+    isDark = true,
+    primary = Color(0xFFC2FF4D),
+    primaryVariant = Color(0xFF9BE000),
+    secondary = Color(0xFF34E5A0),
+    background = Color(0xFF070A0B),
+    surface = Color(0xFF10171A),
+    surface2 = Color(0xFF161F23),
+    error = Color(0xFFFF5D52),
+    textPrimary = Color(0xFFF2F7F4),
+    textSecondary = Color(0xFF9AACA8),
+    textTertiary = Color(0xFF5E716D),
+    onPrimary = Color(0xFF0A1400),
+    onSecondary = Color(0xFF00271B),
+    onBackground = Color(0xFFF2F7F4),
+    onSurface = Color(0xFFF2F7F4),
+    onError = Color(0xFF2A0400),
+    divider = Color.White.copy(alpha = 0.08f),
+    success = Color(0xFF34E5A0),
+    warning = Color(0xFFFFB23E),
+    glassBorder = Color.White.copy(alpha = 0.09f),
+    glassFill = Color.White.copy(alpha = 0.04f),
+    heatEmpty = Color.White.copy(alpha = 0.05f),
+    scrim = Color(0xFF020405).copy(alpha = 0.72f),
+    fieldFill = Color.White.copy(alpha = 0.04f),
+)
+
+private val Ink = Color(0xFF0C1110)
+
 internal val LightAppColors = AppColors(
-    primary = Color(0xFF6750A4),
-    primaryVariant = Color(0xFF625B71),
-    secondary = Color(0xFF7D5260),
-    background = Color(0xFFFFFBFE),
-    surface = Color(0xFFFFFBFE),
-    error = Color(0xFFB3261E),
-    textPrimary = Color(0xFF1C1B1F),
-    textSecondary = Color(0xFF49454F),
-    textTertiary = Color(0xFF79747E),
+    isDark = false,
+    primary = Color(0xFF2BAA4A),
+    primaryVariant = Color(0xFF1F8A3B),
+    secondary = Color(0xFF0FB39A),
+    background = Color(0xFFF4F7F2),
+    surface = Color(0xFFFFFFFF),
+    surface2 = Color(0xFFFBFDF9),
+    error = Color(0xFFD6362B),
+    textPrimary = Ink,
+    textSecondary = Color(0xFF4C5A56),
+    textTertiary = Color(0xFF849490),
     onPrimary = Color(0xFFFFFFFF),
     onSecondary = Color(0xFFFFFFFF),
-    onBackground = Color(0xFF1C1B1F),
-    onSurface = Color(0xFF1C1B1F),
+    onBackground = Ink,
+    onSurface = Ink,
     onError = Color(0xFFFFFFFF),
-    divider = Color(0xFFE7E0EC),
-    success = Color(0xFF2E7D32),
-    warning = Color(0xFFF57C00)
+    divider = Ink.copy(alpha = 0.10f),
+    success = Color(0xFF118A5E),
+    warning = Color(0xFFB6760A),
+    glassBorder = Ink.copy(alpha = 0.08f),
+    glassFill = Color.White.copy(alpha = 0.7f),
+    heatEmpty = Ink.copy(alpha = 0.06f),
+    scrim = Ink.copy(alpha = 0.42f),
+    fieldFill = Color.White,
 )
 
-/**
- * Dark theme color palette — green/lime accent on a near-black background.
- */
-internal val DarkAppColors = AppColors(
-    primary = Color(0xFFCDF564),
-    primaryVariant = Color(0xFFB9E04A),
-    secondary = Color(0xFF7BC9FF),
-    background = Color(0xFF050505),
-    surface = Color(0xFF111111),
-    error = Color(0xFFEF6B6B),
-    textPrimary = Color(0xFFF2F2F2),
-    textSecondary = Color(0xFFB5B5B5),
-    textTertiary = Color(0xFF6F6F6F),
-    onPrimary = Color(0xFF0B1500),
-    onSecondary = Color(0xFF002235),
-    onBackground = Color(0xFFF2F2F2),
-    onSurface = Color(0xFFF2F2F2),
-    onError = Color(0xFF2A0A0A),
-    divider = Color(0xFF222222),
-    success = Color(0xFFCDF564),
-    warning = Color(0xFFFFB74D)
-)
-
-/**
- * CompositionLocal to provide AppColors throughout the composition tree
- */
-val LocalAppColors = staticCompositionLocalOf { LightAppColors }
-
+val LocalAppColors = staticCompositionLocalOf { DarkAppColors }

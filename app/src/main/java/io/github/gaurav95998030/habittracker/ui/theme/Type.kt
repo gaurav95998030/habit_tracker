@@ -1,33 +1,21 @@
 package io.github.gaurav95998030.habittracker.ui.theme
 
 import androidx.compose.material3.Typography
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.sp
 
-// Set of Material typography styles to start with
+/**
+ * Material typography, derived from [DefaultAppTextStyles] so stock M3 components
+ * (snackbars, dialogs, time picker) use the same faces as the custom UI.
+ */
 val Typography = Typography(
-    bodyLarge = TextStyle(
-        fontFamily = MonaSans,
-        fontWeight = FontWeight.Normal,
-        fontSize = 16.sp,
-        lineHeight = 24.sp,
-        letterSpacing = 0.5.sp
-    )
-    /* Other default text styles to override
-    titleLarge = TextStyle(
-        fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.Normal,
-        fontSize = 22.sp,
-        lineHeight = 28.sp,
-        letterSpacing = 0.sp
-    ),
-    labelSmall = TextStyle(
-        fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.Medium,
-        fontSize = 11.sp,
-        lineHeight = 16.sp,
-        letterSpacing = 0.5.sp
-    )
-    */
+    displayLarge = DefaultAppTextStyles.displayLarge,
+    headlineMedium = DefaultAppTextStyles.titleLarge,
+    titleLarge = DefaultAppTextStyles.titleLarge,
+    titleMedium = DefaultAppTextStyles.titleMedium,
+    titleSmall = DefaultAppTextStyles.titleSmall,
+    bodyLarge = DefaultAppTextStyles.bodyLarge,
+    bodyMedium = DefaultAppTextStyles.bodyMedium,
+    bodySmall = DefaultAppTextStyles.bodySmall,
+    labelLarge = DefaultAppTextStyles.labelLarge,
+    labelMedium = DefaultAppTextStyles.labelMedium,
+    labelSmall = DefaultAppTextStyles.labelSmall,
 )

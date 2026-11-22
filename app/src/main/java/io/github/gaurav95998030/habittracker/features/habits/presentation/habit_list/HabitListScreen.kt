@@ -2,185 +2,424 @@ package io.github.gaurav95998030.habittracker.features.habits.presentation.habit
 
 import android.os.Build
 import androidx.annotation.RequiresApi
+import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
-import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.ui.Alignment
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.ui.draw.clip
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material3.Button
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.Icon
-import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.ModalBottomSheetProperties
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Snackbar
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
-import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import io.github.gaurav95998030.habittracker.commons.ui.HSpace
+import io.github.gaurav95998030.habittracker.commons.ui.HfButton
+import io.github.gaurav95998030.habittracker.commons.ui.HfChip
+import io.github.gaurav95998030.habittracker.commons.ui.HfIconButton
+import io.github.gaurav95998030.habittracker.commons.ui.PhIcon
+import io.github.gaurav95998030.habittracker.commons.ui.PhWeight
 import io.github.gaurav95998030.habittracker.commons.ui.PullToRefresh
+import io.github.gaurav95998030.habittracker.commons.ui.RingStat
+import io.github.gaurav95998030.habittracker.commons.ui.accentWash
+import io.github.gaurav95998030.habittracker.features.habits.domain.HabitStats
 import io.github.gaurav95998030.habittracker.features.habits.domain.model.Habit
-import io.github.gaurav95998030.habittracker.features.habits.presentation.habit_list.molecules.ShimmerHabitList
+import io.github.gaurav95998030.habittracker.features.habits.presentation.components.HabitTile
+import io.github.gaurav95998030.habittracker.features.habits.presentation.components.HabitTileShimmer
 import io.github.gaurav95998030.habittracker.features.habits.presentation.habit_list.organisms.AddHabitSheet
-import io.github.gaurav95998030.habittracker.features.habits.presentation.habit_list.organisms.HabitYearlyLists
+import io.github.gaurav95998030.habittracker.features.habits.presentation.habit_list.organisms.HabitDetailSheet
+import io.github.gaurav95998030.habittracker.features.habits.presentation.habit_list.organisms.HabitFormActions
+import io.github.gaurav95998030.habittracker.features.habits.presentation.states.ALL_CATEGORIES
 import io.github.gaurav95998030.habittracker.features.habits.presentation.viewmodel.HabitViewModel
-import io.github.gaurav95998030.habittracker.ui.theme.AppColors
+import io.github.gaurav95998030.habittracker.features.reminders.presentation.NotificationCenterBuilder
+import io.github.gaurav95998030.habittracker.ui.theme.AppShapes
 import io.github.gaurav95998030.habittracker.ui.theme.AppTheme
+import io.github.gaurav95998030.habittracker.ui.theme.PhIcons
+import io.github.gaurav95998030.habittracker.ui.theme.glow
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import java.time.LocalDate
+import java.time.LocalTime
 
-@OptIn(ExperimentalMaterial3Api::class)
+/**
+ * Home · Today. Progress ring, category filter, habit tiles; the FAB opens the
+ * add sheet, tapping a tile opens its detail sheet.
+ */
+
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun HabitListScreen(
     viewModel: HabitViewModel,
-    onOpenNotifications: () -> Unit = {},
-){
-    val sheetState = rememberModalBottomSheetState(
-        skipPartiallyExpanded = true
-    )
-    var showSheet by remember { mutableStateOf(false) }
-
-    val uiState = viewModel.uiState.collectAsState()
-    val snackbarHostState = remember { SnackbarHostState() }
+    userName: String,
+    focusCategories: Set<String>,
+    onOpenNotifications: () -> Unit,
+    onOpenSettings: () -> Unit,
+) {
+    val c = AppTheme.colors
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val habits = state.habits.orEmpty()
+    val form = viewModel.formState
+    val snackbar = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
-    val colors = AppTheme.colors
 
-    val onDeleteHabit: (Habit) -> Unit = { habit ->
+    var showAddSheet by rememberSaveable { mutableStateOf(false) }
+    var detailHabitId by rememberSaveable { mutableStateOf<String?>(null) }
+    val detailHabit = habits.firstOrNull { it.id == detailHabitId }
+
+    // Notification tap → open that habit's detail once it's in the list.
+    LaunchedEffect(state.pendingDetailHabitId, habits) {
+        val id = state.pendingDetailHabitId ?: return@LaunchedEffect
+        if (habits.any { it.id == id }) {
+            detailHabitId = id
+            viewModel.consumePendingDetail()
+        }
+    }
+
+    val onDelete: (Habit) -> Unit = { habit ->
+        detailHabitId = null
         viewModel.deleteHabit(habit)
         scope.launch {
-            snackbarHostState.currentSnackbarData?.dismiss()
-            val autoDismiss = launch {
-                delay(3000)
-                snackbarHostState.currentSnackbarData?.dismiss()
-            }
-            val result = snackbarHostState.showSnackbar(
+            snackbar.currentSnackbarData?.dismiss()
+            val autoDismiss = launch { delay(3000); snackbar.currentSnackbarData?.dismiss() }
+            val result = snackbar.showSnackbar(
                 message = "\"${habit.name}\" deleted",
                 actionLabel = "Undo",
-                withDismissAction = false,
-                duration = SnackbarDuration.Indefinite
+                duration = SnackbarDuration.Indefinite,
             )
             autoDismiss.cancel()
-            if (result == SnackbarResult.ActionPerformed) {
-                viewModel.restoreHabit(habit)
-            }
+            if (result == SnackbarResult.ActionPerformed) viewModel.restoreHabit(habit)
         }
     }
 
+    val today = LocalDate.now()
+    val active = habits.filter { it.isActive }
+    val doneCount = active.count { HabitStats.isDoneOn(it, today) }
+    val categories = remember(habits) { listOf(ALL_CATEGORIES) + habits.map { it.category }.filter { it.isNotBlank() }.distinct() }
+    val filter = state.selectedCategory.takeIf { it in categories } ?: ALL_CATEGORIES
+    val shown = habits.filter { filter == ALL_CATEGORIES || it.category == filter }
+    val pending = remember(habits) { NotificationCenterBuilder.pendingCount(habits) }
 
-    Scaffold(
-        // The parent MainScreen Scaffold already accounts for system bars
-        // (status bar at the top, AppBottomBar at the bottom — and the bar
-        // itself consumes the system gesture inset via .navigationBarsPadding()).
-        // Without this, our inner Scaffold re-applies systemBars insets and
-        // we get a visible gap above the bottom navigation.
-        contentWindowInsets = WindowInsets(0),
-        floatingActionButton = {
-            FloatingActionButton(
-                onClick = {
-                    viewModel.resetForm()
-                    showSheet = true
-                },
-                containerColor = colors.primary,
-                contentColor = colors.onPrimary,
-                shape = RoundedCornerShape(18.dp),
+    Box(Modifier.fillMaxSize().background(c.background)) {
+        PullToRefresh(onRefresh = { viewModel.refreshHabits() }, modifier = Modifier.fillMaxSize()) {
+            LazyColumn(
+                Modifier.fillMaxSize().statusBarsPadding(),
+                contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 14.dp, bottom = 120.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                Icon(Icons.Default.Add, contentDescription = "Add")
-            }
-        },
-        snackbarHost = {
-            SnackbarHost(hostState = snackbarHostState) { data ->
-                Snackbar(
-                    snackbarData = data,
-                    containerColor = colors.surface,
-                    contentColor = colors.textPrimary,
-                    actionColor = colors.error
-                )
-            }
-        },
-        modifier = Modifier.fillMaxSize()
-    ) { paddingValues ->
-        if(uiState.value.isLoading){
-            ShimmerHabitList()
-        }else{
-            PullToRefresh(
-                onRefresh = { viewModel.refreshHabits() },
-                modifier = Modifier.fillMaxSize().padding(paddingValues)
-            ) {
-                HabitYearlyLists(
-                    viewModel = viewModel,
-                    habits = uiState.value.habits ?: emptyList(),
-                    onEditHabit = { habit ->
-                        viewModel.startEditingHabit(habit)
-                        showSheet = true
-                    },
-                    onDeleteHabit = onDeleteHabit,
-                    onOpenNotifications = onOpenNotifications,
-                )
-            }
-        }
-
-    }
-
-    if (showSheet) {
-        ModalBottomSheet(
-            onDismissRequest = {
-                showSheet = false
-                viewModel.resetForm()
-            },
-            dragHandle = { SheetDragHandle() },
-            sheetState = sheetState,
-            containerColor = Color(0xFF000000),
-            modifier = Modifier.padding(0.dp),
-            properties = ModalBottomSheetProperties(shouldDismissOnBackPress = false)
-        ) {
-            AddHabitSheet(
-                sheetState = sheetState,
-                viewModel = viewModel,
-                onDismiss = {
-                    showSheet = false
-                    viewModel.resetForm()
+                item(key = "header") {
+                    HomeHeader(
+                        userName = userName,
+                        unread = pending,
+                        onOpenNotifications = onOpenNotifications,
+                        onOpenProfile = onOpenSettings,
+                        modifier = Modifier.padding(bottom = 8.dp),
+                    )
                 }
+                if (!state.isLoading && active.isNotEmpty()) {
+                    item(key = "progress") {
+                        ProgressCard(done = doneCount, total = active.size, modifier = Modifier.padding(bottom = 10.dp))
+                    }
+                }
+                if (!state.isLoading && habits.isNotEmpty()) {
+                    item(key = "filters") {
+                        LazyRow(
+                            Modifier.padding(bottom = 6.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            items(categories, key = { it }) { cat ->
+                                HfChip(label = cat, active = filter == cat, onClick = { viewModel.onCategorySelected(cat) })
+                            }
+                        }
+                    }
+                }
+                when {
+                    state.isLoading -> items(4, key = { "shimmer$it" }) { HabitTileShimmer() }
+                    habits.isEmpty() -> item(key = "empty") {
+                        EmptyState(onAdd = { viewModel.resetForm(); showAddSheet = true })
+                    }
+                    shown.isEmpty() -> item(key = "emptyFilter") {
+                        Text(
+                            "No habits in $filter.",
+                            style = AppTheme.textStyles.bodyMedium,
+                            color = c.textTertiary,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 50.dp),
+                        )
+                    }
+                    else -> items(shown, key = { it.id }) { habit ->
+                        HabitTile(
+                            habit = habit,
+                            onToggleToday = { viewModel.toggleToday(habit.id) },
+                            onOpen = { detailHabitId = habit.id },
+                            onDelete = { onDelete(habit) },
+                            onResume = { viewModel.setHabitActive(habit, true) },
+                            modifier = Modifier.animateItem(),
+                        )
+                    }
+                }
+            }
+        }
+
+        AddFab(
+            onClick = { viewModel.resetForm(); showAddSheet = true },
+            modifier = Modifier.align(Alignment.BottomEnd).padding(end = 20.dp, bottom = 16.dp),
+        )
+
+        SnackbarHost(snackbar, Modifier.align(Alignment.BottomCenter).padding(bottom = 88.dp)) { data ->
+            Snackbar(
+                snackbarData = data,
+                containerColor = if (c.isDark) c.surface2 else c.textPrimary,
+                contentColor = if (c.isDark) c.textPrimary else c.background,
+                actionColor = c.primary,
+                shape = RoundedCornerShape(16.dp),
+            )
+        }
+    }
+
+    if (showAddSheet) {
+        AddHabitSheet(
+            form = form,
+            focusCategories = focusCategories,
+            isSaving = state.isAddingHabit == true,
+            actions = HabitFormActions(
+                onNameChanged = viewModel::onNameChanged,
+                onDescriptionChanged = viewModel::onDescriptionChanged,
+                onCategoryChanged = viewModel::onCategoryChanged,
+                onColorSelected = viewModel::onColorSelected,
+                onReminderEnabledChanged = viewModel::onReminderEnabledChanged,
+                onReminderTimeSelected = viewModel::onReminderTimeSelected,
+                onSave = { viewModel.saveHabit { showAddSheet = false } },
+            ),
+            onDismiss = { showAddSheet = false; viewModel.resetForm() },
+        )
+    }
+
+    if (detailHabit != null) {
+        HabitDetailSheet(
+            habit = detailHabit,
+            onDismiss = { detailHabitId = null },
+            onToggleDay = { viewModel.toggleDay(detailHabit.id, it.toString()) },
+            onEdit = {
+                detailHabitId = null
+                viewModel.startEditingHabit(detailHabit)
+                showAddSheet = true
+            },
+            onDelete = { onDelete(detailHabit) },
+            onSetActive = { viewModel.setHabitActive(detailHabit, it) },
+        )
+    }
+}
+
+@RequiresApi(Build.VERSION_CODES.O)
+private fun greeting(): String {
+    val h = LocalTime.now().hour
+    return when {
+        h < 12 -> "Good morning"
+        h < 18 -> "Good afternoon"
+        else -> "Good evening"
+    }
+}
+
+@RequiresApi(Build.VERSION_CODES.O)
+@Composable
+private fun HomeHeader(
+    userName: String,
+    unread: Int,
+    onOpenNotifications: () -> Unit,
+    onOpenProfile: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val c = AppTheme.colors
+    val initial = userName.trim().firstOrNull()?.uppercaseChar()?.toString()
+    Row(modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        Column(Modifier.weight(1f)) {
+            Text(
+                if (userName.isNotBlank()) "${greeting()}, ${userName.trim()}" else greeting(),
+                style = AppTheme.textStyles.bodyMedium.copy(fontSize = 13.sp, letterSpacing = 0.2.sp),
+                color = c.textSecondary,
+            )
+            Text(
+                "Today",
+                style = AppTheme.textStyles.titleLarge.copy(fontSize = 26.sp, letterSpacing = (-0.6).sp),
+                color = c.textPrimary,
+                modifier = Modifier.padding(top = 2.dp),
+            )
+        }
+        HfIconButton(
+            glyph = PhIcons.Bell,
+            onClick = onOpenNotifications,
+            size = 44.dp,
+            iconSize = 20.dp,
+            contentDescription = if (unread > 0) "Notifications, $unread due" else "Notifications",
+            badge = if (unread > 0) {
+                {
+                    Box(
+                        Modifier
+                            .align(Alignment.TopEnd)
+                            .offset(x = (-6).dp, y = 5.dp)
+                            .glow(c.error.copy(alpha = 0.66f), 8.dp, 999.dp, enabled = c.isDark)
+                            .clip(CircleShape)
+                            .background(c.background)
+                            .padding(2.dp)
+                            .clip(CircleShape)
+                            .background(c.error)
+                            .widthIn(min = 16.dp)
+                            .padding(horizontal = 4.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(unread.toString(), style = AppTheme.textStyles.caption.copy(fontSize = 10.sp, lineHeight = 14.sp, fontWeight = FontWeight.Bold), color = c.onError)
+                    }
+                }
+            } else null,
+        )
+        HSpace(10.dp)
+        Box(
+            Modifier
+                .size(44.dp)
+                .clip(CircleShape)
+                .background(c.glassFill)
+                .border(1.dp, c.glassBorder, CircleShape)
+                .clickable(onClickLabel = "Open settings", onClick = onOpenProfile),
+            contentAlignment = Alignment.Center,
+        ) {
+            if (initial != null) {
+                Text(initial, style = AppTheme.textStyles.titleSmall.copy(fontSize = 16.sp), fontWeight = FontWeight.SemiBold, color = c.primary)
+            } else {
+                PhIcon(PhIcons.User, size = 20.dp, tint = c.primary, weight = PhWeight.Bold)
+            }
+        }
+    }
+}
+
+@Composable
+private fun ProgressCard(done: Int, total: Int, modifier: Modifier = Modifier) {
+    val c = AppTheme.colors
+    val pct = if (total == 0) 0 else (done * 100 / total)
+    val left = total - done
+    val shape = RoundedCornerShape(AppShapes.card)
+    Row(
+        modifier
+            .fillMaxWidth()
+            .glow(c.primary.copy(alpha = 0.08f), 30.dp, AppShapes.card, enabled = c.isDark)
+            .clip(shape)
+            .background(accentWash(c.primary, 0.1f))
+            .border(1.dp, if (c.isDark) c.primary.copy(alpha = 0.2f) else c.glassBorder, shape)
+            .padding(18.dp)
+            .animateContentSize(),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        RingStat(fraction = done.toFloat() / total.coerceAtLeast(1), value = "$done/$total", size = 76.dp)
+        HSpace(18.dp)
+        Column(Modifier.weight(1f)) {
+            Text(
+                when {
+                    pct == 100 -> "All done — nice."
+                    pct >= 50 -> "Halfway there"
+                    else -> "Let's get moving"
+                },
+                style = AppTheme.textStyles.titleMedium.copy(fontSize = 19.sp, letterSpacing = (-0.3).sp),
+                fontWeight = FontWeight.SemiBold,
+                color = c.textPrimary,
+            )
+            Text(
+                if (pct == 100) "Every habit checked off today."
+                else "$left ${if (left == 1) "habit" else "habits"} left to keep your streaks alive.",
+                style = AppTheme.textStyles.bodyMedium.copy(fontSize = 13.sp),
+                color = c.textSecondary,
+                modifier = Modifier.padding(top = 4.dp),
             )
         }
     }
 }
 
 @Composable
-private fun SheetDragHandle() {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .statusBarsPadding()
-            .padding(top = 10.dp, bottom = 6.dp),
-        contentAlignment = Alignment.Center
+private fun EmptyState(onAdd: () -> Unit) {
+    val c = AppTheme.colors
+    Column(
+        Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 54.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Box(
-            modifier = Modifier
-                .size(width = 36.dp, height = 4.dp)
-                .clip(RoundedCornerShape(2.dp))
-                .background(Color(0xFF3A3A3A))
+            Modifier
+                .size(96.dp)
+                .glow(c.primary.copy(alpha = 0.13f), 40.dp, 28.dp, enabled = c.isDark)
+                .clip(RoundedCornerShape(28.dp))
+                .background(
+                    if (c.isDark) Brush.radialGradient(listOf(c.primary.copy(alpha = 0.2f), c.surface))
+                    else Brush.linearGradient(listOf(c.surface, c.surface))
+                )
+                .border(1.dp, c.glassBorder, RoundedCornerShape(28.dp)),
+            contentAlignment = Alignment.Center,
+        ) {
+            PhIcon(PhIcons.SealCheck, size = 48.dp, tint = c.primary, weight = PhWeight.Fill)
+        }
+        Text(
+            "Start your first habit",
+            style = AppTheme.textStyles.titleLarge.copy(fontSize = 22.sp, letterSpacing = (-0.3).sp),
+            color = c.textPrimary,
+            modifier = Modifier.padding(top = 22.dp),
         )
+        Text(
+            "Small, daily, repeatable. Pick one thing and forge a streak you won't want to break.",
+            style = AppTheme.textStyles.bodyMedium.copy(lineHeight = 21.sp),
+            color = c.textSecondary,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.padding(top = 8.dp).widthIn(max = 250.dp),
+        )
+        HfButton("Add a habit", onClick = onAdd, icon = PhIcons.Plus, modifier = Modifier.padding(top = 24.dp))
+    }
+}
+
+@Composable
+private fun AddFab(onClick: () -> Unit, modifier: Modifier = Modifier) {
+    val c = AppTheme.colors
+    val shape = RoundedCornerShape(20.dp)
+    Box(
+        modifier
+            .size(60.dp)
+            .glow(c.primary.copy(alpha = if (c.isDark) 0.53f else 0.4f), 30.dp, 20.dp)
+            .clip(shape)
+            .background(Brush.linearGradient(listOf(c.primary, c.primaryVariant)))
+            .clickable(role = Role.Button, onClickLabel = "Add habit", onClick = onClick)
+            .semantics { contentDescription = "Add habit" },
+        contentAlignment = Alignment.Center,
+    ) {
+        PhIcon(PhIcons.Plus, size = 28.dp, tint = c.onPrimary, weight = PhWeight.Bold)
     }
 }

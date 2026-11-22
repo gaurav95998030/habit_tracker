@@ -38,7 +38,9 @@ class HabitRepositoryImpl(
             category = habit.category,
             updatedDate = habit.updatedDate,
             reminderEnabled = habit.reminderEnabled,
-            reminderTime = habit.reminderTime
+            reminderTime = habit.reminderTime,
+            icon = habit.icon,
+            isActive = habit.isActive
         )
     }
 

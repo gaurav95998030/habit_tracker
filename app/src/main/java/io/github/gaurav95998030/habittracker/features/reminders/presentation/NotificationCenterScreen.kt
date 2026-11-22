@@ -10,23 +10,18 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.outlined.Notifications
-import androidx.compose.material.icons.outlined.NotificationsOff
-import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -35,314 +30,218 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import io.github.gaurav95998030.habittracker.commons.ui.HSpace
+import io.github.gaurav95998030.habittracker.commons.ui.HfButton
+import io.github.gaurav95998030.habittracker.commons.ui.HfButtonSize
+import io.github.gaurav95998030.habittracker.commons.ui.HfIconButton
+import io.github.gaurav95998030.habittracker.commons.ui.HfSectionLabel
+import io.github.gaurav95998030.habittracker.commons.ui.PhIcon
+import io.github.gaurav95998030.habittracker.commons.ui.PhIconNamed
+import io.github.gaurav95998030.habittracker.commons.ui.PhWeight
+import io.github.gaurav95998030.habittracker.commons.ui.accentWash
+import io.github.gaurav95998030.habittracker.features.habits.HabitCatalog
 import io.github.gaurav95998030.habittracker.features.habits.HabitUtil
 import io.github.gaurav95998030.habittracker.features.habits.presentation.viewmodel.HabitViewModel
+import io.github.gaurav95998030.habittracker.ui.theme.Accents
+import io.github.gaurav95998030.habittracker.ui.theme.AppShapes
 import io.github.gaurav95998030.habittracker.ui.theme.AppTheme
+import io.github.gaurav95998030.habittracker.ui.theme.PhIcons
 
+/**
+ * Every reminder from the last 9 days, grouped by day, derived from the habit list.
+ * Due-now items have an inline "Done"; tapping a habit's icon opens its detail.
+ */
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun NotificationCenterScreen(
     viewModel: HabitViewModel,
+    userName: String,
     onBack: () -> Unit,
+    onOpenHabit: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val c = AppTheme.colors
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val habits = uiState.habits ?: emptyList()
+    val habits = uiState.habits.orEmpty()
     // Recomputed whenever the habit list changes; time is sampled at composition.
-    val data = remember(habits) { NotificationCenterBuilder.build(habits) }
+    val data = remember(habits) { NotificationCenterBuilder.build(habits, HabitCatalog::iconFor) }
 
-    NotificationCenterContent(
-        data = data,
-        onBack = onBack,
-        modifier = modifier,
-    )
-}
-
-@Composable
-private fun NotificationCenterContent(
-    data: NotificationCenterUi,
-    onBack: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val colors = AppTheme.colors
-
-    LazyColumn(
-        modifier = modifier
-            .fillMaxSize()
-            .background(colors.background),
-        contentPadding = PaddingValues(horizontal = 20.dp, vertical = 16.dp),
-    ) {
-        item("header") {
-            NotificationHeader(onBack = onBack)
-            Spacer(Modifier.height(20.dp))
-        }
-
-        item("summary") {
-            ScheduledTodayCard(count = data.scheduledTodayCount)
-            Spacer(Modifier.height(28.dp))
-        }
-
-        if (data.isEmpty) {
-            item("empty") { EmptyState() }
-        }
-
-        data.sections.forEach { section ->
-            item(key = "label_${section.label}") {
-                SectionLabel(section.label)
-                Spacer(Modifier.height(12.dp))
+    Box(modifier.fillMaxSize().background(c.background)) {
+        // Aurora wash.
+        Box(
+            Modifier
+                .align(Alignment.TopCenter)
+                .offset(y = (-80).dp)
+                .size(360.dp, 280.dp)
+                .background(Brush.radialGradient(listOf(c.primary.copy(alpha = if (c.isDark) 0.09f else 0.06f), Color.Transparent))),
+        )
+        Column(Modifier.fillMaxSize().statusBarsPadding()) {
+            Row(
+                Modifier.fillMaxWidth().padding(start = 18.dp, end = 18.dp, top = 14.dp, bottom = 6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                HfIconButton(PhIcons.ArrowLeft, onClick = onBack, size = 40.dp, iconSize = 18.dp, tint = c.textPrimary, contentDescription = "Back")
+                HSpace(12.dp)
+                Column(Modifier.weight(1f)) {
+                    Text("Notifications", style = AppTheme.textStyles.titleLarge.copy(fontSize = 22.sp, letterSpacing = (-0.4).sp), color = c.textPrimary)
+                    Text("Every reminder, in one place", style = AppTheme.textStyles.bodySmall, color = c.textTertiary)
+                }
+                PhIcon(PhIcons.BellRinging, size = 24.dp, tint = c.primary, weight = PhWeight.Fill)
             }
-            items(section.items, key = { "${section.label}_${it.habitId}" }) { item ->
-                NotificationRow(item)
-                Spacer(Modifier.height(12.dp))
-            }
-            item(key = "gap_${section.label}") {
-                Spacer(Modifier.height(16.dp))
+
+            if (data.isEmpty) {
+                EmptyReminders()
+            } else {
+                LazyColumn(
+                    Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(start = 18.dp, end = 18.dp, top = 14.dp, bottom = 32.dp),
+                ) {
+                    item(key = "summary") {
+                        TodaySummary(data, userName, Modifier.padding(bottom = 22.dp))
+                    }
+                    data.sections.forEach { section ->
+                        item(key = "h-${section.date}") {
+                            HfSectionLabel(section.label, Modifier.padding(start = 2.dp), bottom = 10.dp)
+                        }
+                        items(section.items, key = { "${section.date}-${it.key}" }) { n ->
+                            ReminderRow(
+                                n = n,
+                                onOpen = { onOpenHabit(n.habitId) },
+                                onDone = { viewModel.toggleToday(n.habitId) },
+                                modifier = Modifier.padding(bottom = 10.dp),
+                            )
+                        }
+                        item(key = "s-${section.date}") { Box(Modifier.height(12.dp)) }
+                    }
+                }
             }
         }
     }
 }
 
 @Composable
-private fun NotificationHeader(onBack: () -> Unit) {
-    val colors = AppTheme.colors
+private fun TodaySummary(data: NotificationCenterUi, userName: String, modifier: Modifier = Modifier) {
+    val c = AppTheme.colors
+    val shape = RoundedCornerShape(AppShapes.card)
+    val pending = data.todayPending
     Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Box(
-            modifier = Modifier
-                .size(48.dp)
-                .clip(RoundedCornerShape(16.dp))
-                .background(colors.surface)
-                .border(1.dp, colors.divider, RoundedCornerShape(16.dp))
-                .clickable(onClick = onBack),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                contentDescription = "Back",
-                tint = colors.textPrimary,
-                modifier = Modifier.size(22.dp),
-            )
-        }
-
-        Spacer(Modifier.width(16.dp))
-
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = "Notifications",
-                style = AppTheme.textStyles.titleLarge.copy(
-                    color = colors.textPrimary,
-                    fontSize = 30.sp,
-                    fontWeight = FontWeight.Bold,
-                ),
-            )
-            Spacer(Modifier.height(2.dp))
-            Text(
-                text = "Every reminder, in one place",
-                style = AppTheme.textStyles.bodyMedium.copy(color = colors.textSecondary),
-            )
-        }
-
-        Spacer(Modifier.width(12.dp))
-
-        Box(
-            modifier = Modifier
-                .size(48.dp)
-                .clip(CircleShape)
-                .background(colors.primary.copy(alpha = 0.16f)),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(
-                imageVector = Icons.Outlined.Notifications,
-                contentDescription = null,
-                tint = colors.primary,
-                modifier = Modifier.size(22.dp),
-            )
-        }
-    }
-}
-
-@Composable
-private fun ScheduledTodayCard(count: Int) {
-    val colors = AppTheme.colors
-    Row(
-        modifier = Modifier
+        modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(20.dp))
-            .background(colors.primary.copy(alpha = 0.10f))
-            .border(1.dp, colors.primary.copy(alpha = 0.55f), RoundedCornerShape(20.dp))
+            .clip(shape)
+            .background(accentWash(c.primary, 0.1f))
+            .border(1.dp, if (c.isDark) c.primary.copy(alpha = 0.2f) else c.glassBorder, shape)
             .padding(16.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Box(
-            modifier = Modifier
-                .size(56.dp)
-                .clip(RoundedCornerShape(16.dp))
-                .background(colors.primary.copy(alpha = 0.18f)),
+            Modifier.size(46.dp).clip(RoundedCornerShape(14.dp)).background(c.primary.copy(alpha = 0.13f)),
             contentAlignment = Alignment.Center,
         ) {
-            Icon(
-                imageVector = Icons.Outlined.Notifications,
-                contentDescription = null,
-                tint = colors.primary,
-                modifier = Modifier.size(26.dp),
+            PhIcon(if (pending > 0) PhIcons.BellRinging else PhIcons.CheckFat, size = 24.dp, tint = c.primary, weight = PhWeight.Fill)
+        }
+        HSpace(14.dp)
+        Column(Modifier.weight(1f)) {
+            Text(
+                if (pending > 0) "$pending reminder${if (pending > 1) "s" else ""} waiting" else "You’re all caught up",
+                style = AppTheme.textStyles.titleMedium.copy(fontSize = 16.sp, letterSpacing = (-0.2).sp),
+                color = c.textPrimary,
+            )
+            Text(
+                "${data.todayDone} of ${data.todayTotal} of today’s reminders done${if (userName.isNotBlank()) ", ${userName.trim()}" else ""}.",
+                style = AppTheme.textStyles.bodyMedium.copy(fontSize = 13.sp),
+                color = c.textSecondary,
+                modifier = Modifier.padding(top = 3.dp),
             )
         }
-        Spacer(Modifier.width(16.dp))
-        Text(
-            text = "$count reminders scheduled today",
-            style = AppTheme.textStyles.titleLarge.copy(
-                color = colors.textPrimary,
-                fontSize = 22.sp,
-                fontWeight = FontWeight.Bold,
-                lineHeight = 28.sp,
-            ),
-            modifier = Modifier.weight(1f),
-        )
     }
 }
 
 @Composable
-private fun SectionLabel(text: String) {
-    Text(
-        text = text,
-        style = AppTheme.textStyles.labelSmall.copy(
-            color = AppTheme.colors.textTertiary,
-            letterSpacing = 1.4.sp,
-            fontWeight = FontWeight.SemiBold,
-        ),
-        modifier = Modifier.padding(start = 4.dp),
-    )
-}
-
-@Composable
-private fun NotificationRow(item: ReminderNotification) {
-    val colors = AppTheme.colors
-    val accent = remember(item.colorHex) {
-        runCatching { HabitUtil.hexToColor(item.colorHex) }.getOrDefault(colors.primary)
+private fun ReminderRow(n: ReminderNotification, onOpen: () -> Unit, onDone: () -> Unit, modifier: Modifier = Modifier) {
+    val c = AppTheme.colors
+    val color = Accents.colorOf(n.colorHex)
+    val (label, statusColor, icon) = when (n.status) {
+        ReminderStatus.Done -> Triple("Marked done · ${n.streak}-day streak", c.success, PhIcons.CheckCircle)
+        ReminderStatus.Missed -> Triple("You didn't check in", c.textTertiary, PhIcons.XCircle)
+        ReminderStatus.Pending -> Triple("Keep your ${n.streak}-day streak alive", c.warning, PhIcons.BellRinging)
+        ReminderStatus.Upcoming -> Triple("Reminder scheduled", c.textSecondary, PhIcons.Clock)
     }
-    val dim = if (item.status == ReminderStatus.Missed) 0.55f else 1f
-
+    val shape = RoundedCornerShape(AppShapes.tile)
     Row(
-        modifier = Modifier
+        modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(18.dp))
-            .background(colors.surface.copy(alpha = 0.7f))
-            .border(1.dp, colors.divider.copy(alpha = 0.5f), RoundedCornerShape(18.dp))
+            .alpha(if (n.status == ReminderStatus.Missed) 0.62f else 1f)
+            .clip(shape)
+            .background(c.surface)
+            .border(1.dp, if (n.status == ReminderStatus.Pending) c.warning.copy(alpha = 0.27f) else c.glassBorder, shape)
             .padding(14.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Box(
-            modifier = Modifier
-                .size(52.dp)
-                .clip(RoundedCornerShape(14.dp))
-                .background(accent.copy(alpha = 0.16f))
-                .border(1.dp, accent.copy(alpha = 0.4f), RoundedCornerShape(14.dp))
-                .alpha(dim),
+            Modifier
+                .size(44.dp)
+                .clip(RoundedCornerShape(13.dp))
+                .background(color.copy(alpha = 0.13f))
+                .clickable(onClickLabel = "Open ${n.habitName}", onClick = onOpen),
             contentAlignment = Alignment.Center,
         ) {
-            Icon(
-                imageVector = Icons.Outlined.Notifications,
-                contentDescription = null,
-                tint = accent,
-                modifier = Modifier.size(24.dp),
-            )
+            PhIconNamed(n.icon, size = 23.dp, tint = color)
         }
-
-        Spacer(Modifier.width(14.dp))
-
-        Column(modifier = Modifier.weight(1f)) {
+        HSpace(13.dp)
+        Column(Modifier.weight(1f)) {
             Text(
-                text = item.title,
-                style = AppTheme.textStyles.bodyLarge.copy(
-                    color = colors.textPrimary.copy(alpha = dim),
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = 17.sp,
-                ),
+                "Time for ${n.habitName}",
+                style = AppTheme.textStyles.titleSmall.copy(letterSpacing = (-0.1).sp),
+                color = c.textPrimary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
             )
-            Spacer(Modifier.height(3.dp))
-            Text(
-                text = item.timeLabel,
-                style = AppTheme.textStyles.bodyMedium.copy(
-                    color = colors.textSecondary.copy(alpha = dim),
-                ),
-            )
+            Row(Modifier.padding(top = 3.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                PhIcon(PhIcons.Clock, size = 13.dp, tint = c.textTertiary)
+                Text(HabitUtil.formatTime12h(n.time), style = AppTheme.textStyles.bodySmall, color = c.textTertiary)
+                Box(Modifier.size(3.dp).alpha(0.6f).clip(CircleShape).background(c.textTertiary))
+                Text(label, style = AppTheme.textStyles.bodySmall, color = statusColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            }
         }
-
-        Spacer(Modifier.width(8.dp))
-        StatusTrailing(item.status)
+        if (n.status == ReminderStatus.Pending) {
+            HfButton("Done", onClick = onDone, icon = PhIcons.Check, size = HfButtonSize.Small)
+        } else {
+            PhIcon(icon, size = 18.dp, tint = statusColor, weight = PhWeight.Fill)
+        }
     }
 }
 
 @Composable
-private fun StatusTrailing(status: ReminderStatus) {
-    val colors = AppTheme.colors
-    when (status) {
-        ReminderStatus.Missed -> Text(
-            text = "Missed",
-            style = AppTheme.textStyles.bodyMedium.copy(color = colors.textTertiary),
-        )
-        ReminderStatus.Done -> Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(
-                imageVector = Icons.Default.Check,
-                contentDescription = null,
-                tint = colors.success,
-                modifier = Modifier.size(16.dp),
-            )
-            Spacer(Modifier.width(4.dp))
-            Text(
-                text = "Done",
-                style = AppTheme.textStyles.bodyMedium.copy(
-                    color = colors.success,
-                    fontWeight = FontWeight.SemiBold,
-                ),
-            )
-        }
-        ReminderStatus.Scheduled -> Unit
-    }
-}
-
-@Composable
-private fun EmptyState() {
-    val colors = AppTheme.colors
+private fun EmptyReminders() {
+    val c = AppTheme.colors
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(top = 64.dp),
+        Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 70.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center,
     ) {
         Box(
-            modifier = Modifier
-                .size(72.dp)
-                .clip(CircleShape)
-                .background(colors.surface),
+            Modifier
+                .size(88.dp)
+                .clip(RoundedCornerShape(26.dp))
+                .background(c.surface)
+                .border(1.dp, c.glassBorder, RoundedCornerShape(26.dp)),
             contentAlignment = Alignment.Center,
         ) {
-            Icon(
-                imageVector = Icons.Outlined.NotificationsOff,
-                contentDescription = null,
-                tint = colors.textTertiary,
-                modifier = Modifier.size(32.dp),
-            )
+            PhIcon(PhIcons.BellSlash, size = 42.dp, tint = c.textTertiary, weight = PhWeight.Fill)
         }
-        Spacer(Modifier.height(16.dp))
+        Text("No reminders yet", style = AppTheme.textStyles.titleLarge.copy(fontSize = 20.sp), color = c.textPrimary, modifier = Modifier.padding(top = 20.dp))
         Text(
-            text = "No reminders yet",
-            style = AppTheme.textStyles.bodyLarge.copy(
-                color = colors.textPrimary,
-                fontWeight = FontWeight.SemiBold,
-            ),
-        )
-        Spacer(Modifier.height(6.dp))
-        Text(
-            text = "Turn on a reminder for a habit and it\nwill show up here.",
-            style = AppTheme.textStyles.bodyMedium.copy(color = colors.textTertiary),
+            "Turn on reminders for a habit and they'll show up here.",
+            style = AppTheme.textStyles.bodyMedium.copy(lineHeight = 21.sp),
+            color = c.textSecondary,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.padding(top = 8.dp).widthIn(max = 240.dp),
         )
     }
 }

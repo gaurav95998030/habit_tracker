@@ -1,398 +1,294 @@
 package io.github.gaurav95998030.habittracker.features.habits.presentation.habit_list.organisms
 
-import androidx.activity.compose.BackHandler
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.SheetState
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.ui.platform.LocalView
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalFocusManager
-import androidx.compose.ui.platform.LocalSoftwareKeyboardController
-import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.core.content.ContextCompat
+import io.github.gaurav95998030.habittracker.commons.ui.HfBottomSheet
+import io.github.gaurav95998030.habittracker.commons.ui.HfButton
+import io.github.gaurav95998030.habittracker.commons.ui.HfButtonVariant
+import io.github.gaurav95998030.habittracker.commons.ui.HfChip
+import io.github.gaurav95998030.habittracker.commons.ui.HfField
+import io.github.gaurav95998030.habittracker.commons.ui.HfIconButton
+import io.github.gaurav95998030.habittracker.commons.ui.HfSectionLabel
+import io.github.gaurav95998030.habittracker.commons.ui.HfSwatches
+import io.github.gaurav95998030.habittracker.commons.ui.HfTimePickerDialog
+import io.github.gaurav95998030.habittracker.commons.ui.HfToggle
+import io.github.gaurav95998030.habittracker.commons.ui.PhIcon
+import io.github.gaurav95998030.habittracker.commons.ui.PhWeight
+import io.github.gaurav95998030.habittracker.features.habits.HabitCatalog
 import io.github.gaurav95998030.habittracker.features.habits.HabitUtil
-import io.github.gaurav95998030.habittracker.features.habits.presentation.habit_list.molecules.AlertsToggleField
-import io.github.gaurav95998030.habittracker.features.habits.presentation.habit_list.molecules.CategorySelector
-import io.github.gaurav95998030.habittracker.features.habits.presentation.habit_list.molecules.HabitColorPicker
-import io.github.gaurav95998030.habittracker.features.habits.presentation.habit_list.molecules.ReminderTimeField
-import io.github.gaurav95998030.habittracker.features.habits.presentation.viewmodel.HabitViewModel
+import io.github.gaurav95998030.habittracker.features.habits.presentation.states.HabitFormState
+import io.github.gaurav95998030.habittracker.ui.theme.Accents
+import io.github.gaurav95998030.habittracker.ui.theme.AppShapes
+import io.github.gaurav95998030.habittracker.ui.theme.AppTheme
+import io.github.gaurav95998030.habittracker.ui.theme.PhIcons
 
-private val SheetBackground = Color(0xFF000000)
-private val FieldBackground = Color(0xFF161616)
-private val FieldBorder = Color(0xFF242424)
-private val LimeAccent = Color(0xFFC9FF3E)
-private val TextPrimary = Color(0xFFFFFFFF)
-private val TextSecondary = Color(0xFFD7D7D7)
-private val TextPlaceholder = Color(0xFF6E6E6E)
-private val ErrorRed = Color(0xFFFF6B6B)
-
-private val habitColors = listOf(
-    // Row 1
-    Color(0xFFC9FF3E), // lime
-    Color(0xFF00D9FF), // cyan
-    Color(0xFFE0B3E8), // lavender
-    Color(0xFFFFAFA0), // coral
-    Color(0xFFFFA94D), // orange
-    Color(0xFF87E5F0), // sky cyan
-    Color(0xFFD6F58A), // pale green
-    Color(0xFF7FB8FF), // sky blue
-    // Row 2
-    Color(0xFFFF6FA6), // hot pink
-    Color(0xFFFFE066), // yellow
-    Color(0xFFBD8FFF), // purple
-    Color(0xFF4DE8C0), // teal
-    Color(0xFF98F5C0), // mint
-    Color(0xFFFFD1A1), // peach
-    Color(0xFF8C95FF), // indigo
-    Color(0xFFFF5CD4)  // magenta
+/** Callbacks from the form into HabitViewModel. */
+data class HabitFormActions(
+    val onNameChanged: (String) -> Unit,
+    val onDescriptionChanged: (String) -> Unit,
+    val onCategoryChanged: (String) -> Unit,
+    val onColorSelected: (String) -> Unit,
+    val onReminderEnabledChanged: (Boolean) -> Unit,
+    val onReminderTimeSelected: (String) -> Unit,
+    val onSave: () -> Unit,
 )
 
-private val categories = listOf(
-    "Health", "Work", "Focus", "Social",
-    "Fitness", "Workout", "Diet", "Hydration",
-    "Sleep", "Meditation", "Mindfulness", "Mental Health",
-    "Study", "Learning", "Reading", "Skill Building",
-    "Productivity", "Career", "Time Management",
-    "Finance", "Budgeting", "Savings",
-    "Routine", "Morning Routine", "Night Routine",
-    "Self Care", "Personal Growth", "Gratitude", "Journaling",
-    "Yoga", "Walking", "Steps",
-    "Habits", "Lifestyle", "Other"
-)
-
-@OptIn(ExperimentalMaterial3Api::class)
+/**
+ * New / edit habit bottom sheet: name, description, category, accent, daily reminder.
+ * Driven entirely by [form] (HabitViewModel.formState).
+ */
 @Composable
 fun AddHabitSheet(
-    sheetState: SheetState,
-    viewModel: HabitViewModel,
+    form: HabitFormState,
+    focusCategories: Set<String>,
+    isSaving: Boolean,
+    actions: HabitFormActions,
     onDismiss: () -> Unit,
 ) {
-    val keyboardOpen = isKeyboardOpen()
-    val focusManager = LocalFocusManager.current
-    val keyboardController = LocalSoftwareKeyboardController.current
+    val c = AppTheme.colors
+    val editing = form.editingHabitId != null
+    val accent = Accents.colorOf(form.color)
+    val context = LocalContext.current
+    val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { }
 
-    LightStatusBarEffect()
+    fun enableReminder(enabled: Boolean) {
+        if (enabled && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
+        ) {
+            permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+        }
+        actions.onReminderEnabledChanged(enabled)
+    }
 
-    BackHandler {
-        if (keyboardOpen) {
-            keyboardController?.hide()
-            focusManager.clearFocus()
-        } else {
-            onDismiss()
+    // Focus areas picked in onboarding float to the front; a legacy category on an
+    // edited habit is kept as an extra chip so editing never silently changes it.
+    val categories = remember(focusCategories, form.category) {
+        val ordered = HabitCatalog.categories.sortedBy { if (it.name in focusCategories) 0 else 1 }
+        if (form.category.isNotBlank() && ordered.none { it.name == form.category })
+            ordered + io.github.gaurav95998030.habittracker.features.habits.HabitCategory(form.category, HabitCatalog.categoryIcon(form.category))
+        else ordered
+    }
+
+    HfBottomSheet(onDismiss = onDismiss) {
+        Column(Modifier.fillMaxWidth().imePadding()) {
+            Row(
+                Modifier.fillMaxWidth().padding(start = 22.dp, end = 22.dp, top = 6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Text(
+                    if (editing) "Edit habit" else "New habit",
+                    style = AppTheme.textStyles.titleLarge.copy(fontSize = 21.sp, letterSpacing = (-0.4).sp),
+                    color = c.textPrimary,
+                )
+                HfIconButton(PhIcons.X, onClick = onDismiss, contentDescription = "Close")
+            }
+
+            Column(
+                Modifier
+                    .weight(1f, fill = false)
+                    .verticalScroll(rememberScrollState())
+                    .padding(start = 22.dp, end = 22.dp, top = 20.dp, bottom = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(22.dp),
+            ) {
+                HfField(
+                    value = form.name,
+                    onValueChange = actions.onNameChanged,
+                    label = "Habit name",
+                    placeholder = "e.g. Morning run",
+                    icon = PhIcons.PencilSimple,
+                )
+                HfField(
+                    value = form.description,
+                    onValueChange = actions.onDescriptionChanged,
+                    label = "Description",
+                    placeholder = "Optional — why does this matter?",
+                    icon = PhIcons.TextAlignLeft,
+                    multiline = true,
+                )
+                Column {
+                    HfSectionLabel("Category")
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        categories.forEach { cat ->
+                            HfChip(
+                                label = cat.name,
+                                icon = cat.icon,
+                                active = form.category == cat.name,
+                                accent = accent,
+                                onClick = { actions.onCategoryChanged(cat.name) },
+                            )
+                        }
+                    }
+                }
+                Column {
+                    HfSectionLabel("Accent color")
+                    HfSwatches(selectedHex = form.color, onSelect = actions.onColorSelected)
+                }
+                Column {
+                    HfSectionLabel("Reminder")
+                    ReminderCard(
+                        enabled = form.reminderEnabled,
+                        time = form.reminderTime ?: HabitCatalog.DEFAULT_REMINDER_TIME,
+                        accent = accent,
+                        onEnabledChange = ::enableReminder,
+                        onTimeSelected = actions.onReminderTimeSelected,
+                    )
+                }
+            }
+
+            HorizontalDivider(color = c.divider, thickness = 1.dp)
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .navigationBarsPadding()
+                    .padding(horizontal = 22.dp, vertical = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                HfButton("Cancel", onClick = onDismiss, variant = HfButtonVariant.Secondary)
+                HfButton(
+                    text = if (editing) "Save changes" else "Create habit",
+                    onClick = actions.onSave,
+                    icon = if (editing) PhIcons.Check else PhIcons.Plus,
+                    enabled = form.name.isNotBlank() && !isSaving,
+                    modifier = Modifier.weight(1f),
+                    fullWidth = true,
+                )
+            }
         }
     }
+}
 
-    val formState = viewModel.formState
-    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val isEditing = formState.editingHabitId != null
+@Composable
+private fun ReminderCard(
+    enabled: Boolean,
+    time: String,
+    accent: Color,
+    onEnabledChange: (Boolean) -> Unit,
+    onTimeSelected: (String) -> Unit,
+) {
+    val c = AppTheme.colors
+    var showTimes by rememberSaveable { mutableStateOf(false) }
+    var showCustom by remember { mutableStateOf(false) }
+    val shape = RoundedCornerShape(AppShapes.field)
+    val caret by animateFloatAsState(if (showTimes) 180f else 0f, label = "caret")
 
-    LaunchedEffect(Unit) {
-        if (formState.color.isEmpty()) {
-            viewModel.onColorSelected(HabitUtil.colorToHex(habitColors[0]))
-        }
-    }
-
-    val selectedColor = remember(formState.color) {
-        if (formState.color.isNotEmpty()) {
-            runCatching { HabitUtil.hexToColor(formState.color) }.getOrNull() ?: habitColors[0]
-        } else habitColors[0]
-    }
-    val categorySelected = formState.category.takeIf { it.isNotEmpty() }
-    val isSaving = uiState.isAddingHabit == true
-    val canSave = formState.name.isNotBlank() && !isSaving
-
-    val scrollState = rememberScrollState()
     Column(
         Modifier
-            .fillMaxSize()
-            .background(SheetBackground)
-            .imePadding()
+            .fillMaxWidth()
+            .clip(shape)
+            .background(c.fieldFill)
+            .border(1.dp, c.glassBorder, shape),
     ) {
-        // Header
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp, vertical = 18.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+            Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Text(
-                text = if (isEditing) "Edit Habit" else "New Habit",
-                color = TextPrimary,
-                fontSize = 22.sp,
-                fontWeight = FontWeight.Bold
-            )
-            Box(
-                modifier = Modifier
-                    .size(36.dp)
-                    .clip(CircleShape)
-                    .background(Color(0xFF1E1E1E))
-                    .clickable(onClick = onDismiss),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Close,
-                    contentDescription = "close",
-                    modifier = Modifier.size(18.dp),
-                    tint = TextSecondary
-                )
-            }
+            PhIcon(PhIcons.Bell, size = 20.dp, tint = if (enabled) accent else c.textTertiary, weight = PhWeight.Bold)
+            Text("Daily reminder", style = AppTheme.textStyles.bodyLarge.copy(fontSize = 15.sp), color = c.textPrimary, modifier = Modifier.weight(1f))
+            HfToggle(checked = enabled, onCheckedChange = onEnabledChange, accent = accent)
         }
-
-        Column(
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxWidth()
-                .verticalScroll(scrollState)
-                .padding(horizontal = 20.dp)
-        ) {
-            FieldLabel("Habit Name")
-            Spacer(Modifier.height(10.dp))
-            DarkTextField(
-                value = formState.name,
-                onValueChange = viewModel::onNameChanged,
-                placeholder = "e.g. Morning Meditation",
-                singleLine = true,
-                minHeight = 56.dp
-            )
-            if (formState.nameError.isNotEmpty()) {
-                Spacer(Modifier.height(6.dp))
-                Text(
-                    text = formState.nameError,
-                    color = ErrorRed,
-                    fontSize = 12.sp
-                )
-            }
-
-            Spacer(Modifier.height(20.dp))
-
-            FieldLabel("Description (Optional)")
-            Spacer(Modifier.height(10.dp))
-            DarkTextField(
-                value = formState.description,
-                onValueChange = viewModel::onDescriptionChanged,
-                placeholder = "Why are you doing this?",
-                singleLine = false,
-                minHeight = 88.dp
-            )
-
-            Spacer(Modifier.height(24.dp))
-
-            FieldLabel("Category")
-            Spacer(Modifier.height(12.dp))
-            CategorySelector(
-                categories = categories,
-                selectedCategory = categorySelected,
-                onCategorySelected = viewModel::onCategoryChanged,
-                accentColor = selectedColor
-            )
-
-            Spacer(Modifier.height(24.dp))
-
-            FieldLabel("Visual Theme")
-            Spacer(Modifier.height(12.dp))
-            HabitColorPicker(
-                colors = habitColors,
-                selectedColor = selectedColor,
-                onColorSelected = { color ->
-                    viewModel.onColorSelected(HabitUtil.colorToHex(color))
-                }
-            )
-
-            Spacer(Modifier.height(24.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(14.dp)
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    FieldLabel("Reminder Time")
-                    Spacer(Modifier.height(10.dp))
-                    ReminderTimeField(
-                        time = formState.reminderTime,
-                        onTimeSelected = viewModel::onReminderTimeChanged
-                    )
-                }
-                Column(modifier = Modifier.weight(1f)) {
-                    FieldLabel("Alerts")
-                    Spacer(Modifier.height(10.dp))
-                    AlertsToggleField(
-                        enabled = formState.reminderEnabled,
-                        onEnabledChanged = viewModel::onReminderEnabledChanged
-                    )
+        AnimatedVisibility(enabled) {
+            Column {
+                HorizontalDivider(color = c.divider, thickness = 1.dp)
+                Column(Modifier.padding(horizontal = 16.dp, vertical = 14.dp)) {
+                    Row(
+                        Modifier.fillMaxWidth().clickable { showTimes = !showTimes },
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                    ) {
+                        Text("Time", style = AppTheme.textStyles.bodyMedium, color = c.textSecondary)
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Text(
+                                HabitUtil.formatTime12h(time),
+                                style = AppTheme.textStyles.titleMedium.copy(fontSize = 17.sp),
+                                fontWeight = FontWeight.SemiBold,
+                                color = accent,
+                            )
+                            PhIcon(PhIcons.CaretDown, size = 14.dp, tint = c.textTertiary, weight = PhWeight.Bold, modifier = Modifier.rotate(caret))
+                        }
+                    }
+                    AnimatedVisibility(showTimes) {
+                        val custom = time !in HabitCatalog.quickTimes
+                        FlowRow(
+                            Modifier.padding(top = 14.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            HabitCatalog.quickTimes.forEach { t ->
+                                TimeChip(HabitUtil.formatTime12h(t), selected = t == time, accent = accent) { onTimeSelected(t) }
+                            }
+                            TimeChip(
+                                if (custom) "${HabitUtil.formatTime12h(time)} ✎" else "Custom…",
+                                selected = custom, accent = accent,
+                            ) { showCustom = true }
+                        }
+                    }
                 }
             }
-
-            Spacer(Modifier.height(28.dp))
         }
+    }
 
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(SheetBackground)
-                .padding(horizontal = 20.dp, vertical = 16.dp)
-        ) {
-            CreateHabitButton(
-                text = when {
-                    isSaving && isEditing -> "Saving"
-                    isSaving -> "Creating"
-                    isEditing -> "Save Habit"
-                    else -> "Create Habit"
-                },
-                enabled = canSave,
-                loading = isSaving,
-                backgroundColor = selectedColor,
-                onClick = { viewModel.saveHabit(onSaved = { onDismiss() }) }
-            )
-        }
+    if (showCustom) {
+        HfTimePickerDialog(
+            title = "Reminder time",
+            initial = time,
+            onDismiss = { showCustom = false },
+            onConfirm = { onTimeSelected(it); showCustom = false },
+        )
     }
 }
 
 @Composable
-private fun FieldLabel(text: String) {
-    Text(
-        text = text,
-        color = TextPrimary,
-        fontSize = 15.sp,
-        fontWeight = FontWeight.SemiBold
-    )
-}
-
-@Composable
-private fun DarkTextField(
-    value: String,
-    onValueChange: (String) -> Unit,
-    placeholder: String,
-    singleLine: Boolean,
-    minHeight: androidx.compose.ui.unit.Dp
-) {
-    BasicTextField(
-        value = value,
-        onValueChange = onValueChange,
-        singleLine = singleLine,
-        textStyle = TextStyle(
-            color = TextPrimary,
-            fontSize = 15.sp
-        ),
-        cursorBrush = SolidColor(LimeAccent),
-        modifier = Modifier
-            .fillMaxWidth()
-            .heightIn(min = minHeight)
-            .clip(RoundedCornerShape(14.dp))
-            .background(FieldBackground)
-            .border(1.dp, FieldBorder, RoundedCornerShape(14.dp))
-            .padding(horizontal = 16.dp, vertical = 16.dp),
-        decorationBox = { innerTextField ->
-            Box(contentAlignment = if (singleLine) Alignment.CenterStart else Alignment.TopStart) {
-                if (value.isEmpty()) {
-                    Text(
-                        text = placeholder,
-                        color = TextPlaceholder,
-                        fontSize = 15.sp
-                    )
-                }
-                innerTextField()
-            }
-        }
-    )
-}
-
-@Composable
-private fun CreateHabitButton(
-    text: String,
-    enabled: Boolean,
-    loading: Boolean,
-    backgroundColor: Color,
-    onClick: () -> Unit
-) {
-    val bg = if (enabled) backgroundColor else Color(0xFF2A2A2A)
-    val contentColor = if (enabled) Color.Black else Color(0xFF777777)
+private fun TimeChip(label: String, selected: Boolean, accent: Color, onClick: () -> Unit) {
+    val c = AppTheme.colors
+    val shape = RoundedCornerShape(10.dp)
     Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(56.dp)
-            .clip(RoundedCornerShape(28.dp))
-            .background(bg)
-            .clickable(enabled = enabled && !loading, onClick = onClick),
-        contentAlignment = Alignment.Center
+        Modifier
+            .clip(shape)
+            .background(if (selected) accent.copy(alpha = 0.13f) else Color.Transparent)
+            .border(1.dp, if (selected) accent else c.glassBorder, shape)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 12.dp, vertical = 8.dp),
     ) {
-        if (loading) {
-            CircularProgressIndicator(
-                strokeWidth = 2.5.dp,
-                modifier = Modifier.size(22.dp),
-                color = contentColor
-            )
-        } else {
-            Text(
-                text = text,
-                color = contentColor,
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Bold
-            )
-        }
-    }
-}
-
-@Composable
-fun isKeyboardOpen(): Boolean {
-    val ime = WindowInsets.ime
-    return ime.getBottom(LocalDensity.current) > 0
-}
-
-@Composable
-private fun LightStatusBarEffect() {
-    val view = LocalView.current
-    DisposableEffect(view) {
-        val activity = generateSequence<android.content.Context>(view.context) {
-            (it as? android.content.ContextWrapper)?.baseContext
-        }.firstOrNull { it is android.app.Activity } as? android.app.Activity
-        val window = activity?.window
-        if (window == null) {
-            onDispose {}
-        } else {
-            val controller = androidx.core.view.WindowCompat.getInsetsController(window, view)
-            val wasLight = controller.isAppearanceLightStatusBars
-            controller.isAppearanceLightStatusBars = false
-            onDispose { controller.isAppearanceLightStatusBars = wasLight }
-        }
+        Text(label, style = AppTheme.textStyles.labelLarge.copy(fontSize = 13.sp), color = if (selected) accent else c.textSecondary)
     }
 }

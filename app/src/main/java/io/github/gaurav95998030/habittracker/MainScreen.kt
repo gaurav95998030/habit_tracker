@@ -2,33 +2,51 @@ package io.github.gaurav95998030.habittracker
 
 import android.os.Build
 import androidx.annotation.RequiresApi
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavGraph.Companion.findStartDestination
+import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import io.github.gaurav95998030.habittracker.features.habits.presentation.viewmodel.HabitViewModel
+import io.github.gaurav95998030.habittracker.features.settings.presentation.SettingsViewModel
+import io.github.gaurav95998030.habittracker.features.widget.presentation.WidgetPromoSheet
 import io.github.gaurav95998030.habittracker.navigation.AppBottomBar
 import io.github.gaurav95998030.habittracker.navigation.AppNavHost
 import io.github.gaurav95998030.habittracker.navigation.TopLevelDestination
+import io.github.gaurav95998030.habittracker.ui.theme.AppTheme
 
 /**
- * Root screen of the app.
+ * Root screen of the app (post-onboarding).
  *
  * Owns the NavController, observes the current backstack entry, derives the
  * "selected tab" from it, and handles the navigation transaction when a tab
- * is tapped.
+ * is tapped. The bottom bar is hidden on non-tab routes (Notification center).
  *
- * The four flags on navigate() are load-bearing — they are the standard
- * recipe for a bottom-bar-style NavHost. See onTabSelected() below.
+ * Also hosts the home-screen widget nudge: shown once automatically (on a launch
+ * after onboarding, when there's at least one habit) and on demand from Settings.
+ *
+ * @param widgetPromoEligible true when this launch started with onboarding already
+ * complete, so a brand-new user isn't hit with the nudge right after onboarding.
  */
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
-fun MainScreen(habitViewModel: HabitViewModel) {
+fun MainScreen(
+    habitViewModel: HabitViewModel,
+    settingsViewModel: SettingsViewModel,
+    widgetPromoEligible: Boolean,
+) {
     val navController = rememberNavController()
 
     // currentBackStackEntryAsState recomposes when the active destination
@@ -36,28 +54,48 @@ fun MainScreen(habitViewModel: HabitViewModel) {
     // route the NavController is on (e.g. system back button).
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route
+    val currentTab = TopLevelDestination.entries.firstOrNull { it.route == currentRoute }
+    val selected = currentTab ?: TopLevelDestination.Start
 
-    val selected = TopLevelDestination.values()
-        .firstOrNull { it.route == currentRoute }
-        ?: TopLevelDestination.Start
+    val habitState by habitViewModel.uiState.collectAsStateWithLifecycle()
+    val promoSeen by settingsViewModel.widgetPromoSeen.collectAsStateWithLifecycle()
+    var promoRequested by rememberSaveable { mutableStateOf(false) }
+    val habits = habitState.habits.orEmpty()
+    val autoPromo = widgetPromoEligible && !promoSeen && !habitState.isLoading &&
+        habits.isNotEmpty() && currentTab == TopLevelDestination.Home && habitState.pendingDetailHabitId == null
+
+    val selectTab: (TopLevelDestination) -> Unit = { onTabSelected(navController, it, currentRoute) }
 
     Scaffold(
         bottomBar = {
-            AppBottomBar(
-                selected = selected,
-                onSelect = { destination ->
-                    onTabSelected(navController, destination, currentRoute)
-                },
-            )
+            if (currentTab != null) AppBottomBar(selected = selected, onSelect = selectTab)
         },
+        containerColor = AppTheme.colors.background,
+        // Screens handle the status bar themselves (edge-to-edge headers).
+        contentWindowInsets = WindowInsets(0),
         modifier = Modifier.fillMaxSize(),
     ) { paddingValues ->
-        AppNavHost(
-            navController = navController,
-            habitViewModel = habitViewModel,
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues),
+        Box(Modifier.fillMaxSize().background(AppTheme.colors.background)) {
+            AppNavHost(
+                navController = navController,
+                habitViewModel = habitViewModel,
+                settingsViewModel = settingsViewModel,
+                onSelectTab = selectTab,
+                onOpenWidgetPromo = { promoRequested = true },
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues),
+            )
+        }
+    }
+
+    if (promoRequested || autoPromo) {
+        WidgetPromoSheet(
+            habits = habits,
+            onDismiss = {
+                promoRequested = false
+                settingsViewModel.markWidgetPromoSeen()
+            },
         )
     }
 }
@@ -83,7 +121,7 @@ fun MainScreen(habitViewModel: HabitViewModel) {
  * start destination) before exiting, and rapid taps don't break anything.
  */
 private fun onTabSelected(
-    navController: androidx.navigation.NavHostController,
+    navController: NavHostController,
     destination: TopLevelDestination,
     currentRoute: String?,
 ) {

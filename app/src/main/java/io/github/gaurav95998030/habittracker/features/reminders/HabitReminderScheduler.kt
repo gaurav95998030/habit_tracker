@@ -86,7 +86,53 @@ class HabitReminderScheduler @Inject constructor(
             alarmManager.cancel(pi)
             pi.cancel()
         }
+        cancelSnooze(habitId)
     }
+
+    /**
+     * One-shot alarm [ReminderConstants.SNOOZE_MINUTES] from now, fired by the
+     * notification's "Snooze 1h" action. Uses its own action + request code so it
+     * never replaces (or is replaced by) the habit's daily alarm.
+     */
+    fun scheduleSnooze(habitId: String, habitName: String, habitColor: String) {
+        ensureNotificationChannel()
+        val intent = Intent(context, HabitReminderReceiver::class.java).apply {
+            action = ReminderConstants.ACTION_FIRE_SNOOZED
+            putExtra(ReminderConstants.EXTRA_HABIT_ID, habitId)
+            putExtra(ReminderConstants.EXTRA_HABIT_NAME, habitName)
+            putExtra(ReminderConstants.EXTRA_HABIT_COLOR, habitColor)
+        }
+        val pi = PendingIntent.getBroadcast(
+            context,
+            snoozeRequestCode(habitId),
+            intent,
+            pendingIntentFlags(mutable = false) or PendingIntent.FLAG_UPDATE_CURRENT
+        )
+        AlarmManagerCompat.setAndAllowWhileIdle(
+            alarmManager,
+            AlarmManager.RTC_WAKEUP,
+            System.currentTimeMillis() + ReminderConstants.SNOOZE_MINUTES * 60_000L,
+            pi
+        )
+    }
+
+    private fun cancelSnooze(habitId: String) {
+        val intent = Intent(context, HabitReminderReceiver::class.java).apply {
+            action = ReminderConstants.ACTION_FIRE_SNOOZED
+        }
+        val pi = PendingIntent.getBroadcast(
+            context,
+            snoozeRequestCode(habitId),
+            intent,
+            pendingIntentFlags(mutable = false) or PendingIntent.FLAG_NO_CREATE
+        )
+        if (pi != null) {
+            alarmManager.cancel(pi)
+            pi.cancel()
+        }
+    }
+
+    private fun snoozeRequestCode(habitId: String) = habitId.hashCode() xor 0x5A0E
 
     fun rescheduleAll(habits: List<Habit>) {
         habits.filter { it.reminderEnabled && it.reminderTime != null }.forEach { schedule(it) }

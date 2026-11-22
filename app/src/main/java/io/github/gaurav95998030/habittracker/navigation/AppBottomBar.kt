@@ -2,43 +2,31 @@ package io.github.gaurav95998030.habittracker.navigation
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import io.github.gaurav95998030.habittracker.commons.ui.PhIcon
+import io.github.gaurav95998030.habittracker.commons.ui.PhWeight
 import io.github.gaurav95998030.habittracker.ui.theme.AppTheme
 
-private val BarHeight = 64.dp
-
 /**
- * Flat, minimal bottom navigation bar.
- *
- * - Vertical stack per item: icon on top, label below.
- * - Always-visible labels (no animated expand/collapse).
- * - Selected = filled icon + primary color + slightly bolder label.
- * - Unselected = outlined icon + tertiary text color.
- * - No pill, no sliding indicator — color alone signals the active tab.
- *
- * Uses MaterialTheme.colorScheme.primary so the accent matches the dynamic
- * color scheme (the same accent driving the FAB), instead of the static
- * AppTheme.colors.primary token.
+ * Frosted bottom navigation: icon over label, filled icon + primary tint when
+ * selected. Draws behind the gesture/nav bar and pads its content above it.
  */
 @Composable
 fun AppBottomBar(
@@ -46,78 +34,38 @@ fun AppBottomBar(
     onSelect: (TopLevelDestination) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val destinations = remember { TopLevelDestination.values().toList() }
-    val colors = AppTheme.colors
-
-    Surface(
-        modifier = modifier.fillMaxWidth(),
-        color = colors.surface,
-    ) {
-        Column(modifier = Modifier.fillMaxWidth()) {
-            HorizontalDivider(
-                thickness = 0.5.dp,
-                color = colors.divider.copy(alpha = 0.4f),
-            )
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .navigationBarsPadding()
-                    .height(BarHeight),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceEvenly,
-            ) {
-                destinations.forEach { destination ->
-                    BottomBarItem(
-                        destination = destination,
-                        isSelected = destination == selected,
-                        onClick = { onSelect(destination) },
-                        modifier = Modifier
-                            .weight(1f)
-                            .fillMaxHeight(),
+    val c = AppTheme.colors
+    val bar = if (c.isDark) Color(0xFF0A0E0F).copy(alpha = 0.94f) else Color.White.copy(alpha = 0.94f)
+    Column(modifier.fillMaxWidth().background(bar)) {
+        HorizontalDivider(thickness = 1.dp, color = c.glassBorder)
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .navigationBarsPadding()
+                .padding(start = 16.dp, end = 16.dp, top = 10.dp, bottom = 4.dp),
+            horizontalArrangement = Arrangement.SpaceEvenly,
+        ) {
+            TopLevelDestination.entries.forEach { d ->
+                val active = d == selected
+                val tint = if (active) c.primary else c.textTertiary
+                Column(
+                    Modifier
+                        .weight(1f)
+                        .semantics { this.selected = active }
+                        .clickable(interactionSource = null, indication = null, role = Role.Tab) { onSelect(d) }
+                        .padding(vertical = 6.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    PhIcon(d.icon, size = 24.dp, tint = tint, weight = if (active) PhWeight.Fill else PhWeight.Regular)
+                    Text(
+                        d.label,
+                        style = AppTheme.textStyles.caption.copy(fontSize = 10.5.sp),
+                        fontWeight = if (active) FontWeight.SemiBold else FontWeight.Medium,
+                        color = tint,
                     )
                 }
             }
         }
     }
 }
-
-@Composable
-private fun BottomBarItem(
-    destination: TopLevelDestination,
-    isSelected: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val selectedColor = MaterialTheme.colorScheme.primary
-    val unselectedColor = AppTheme.colors.textTertiary
-    val contentColor = if (isSelected) selectedColor else unselectedColor
-
-    val interactionSource = remember { MutableInteractionSource() }
-
-    Column(
-        modifier = modifier
-            .clickable(
-                interactionSource = interactionSource,
-                indication = null,
-                onClick = onClick,
-            )
-            .padding(vertical = 8.dp),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        Icon(
-            imageVector = if (isSelected) destination.selectedIcon else destination.unselectedIcon,
-            contentDescription = destination.label,
-            tint = contentColor,
-            modifier = Modifier.size(24.dp),
-        )
-        Text(
-            text = destination.label,
-            style = AppTheme.textStyles.labelSmall,
-            color = contentColor,
-            fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
-            modifier = Modifier.padding(top = 4.dp),
-        )
-    }
-}
-

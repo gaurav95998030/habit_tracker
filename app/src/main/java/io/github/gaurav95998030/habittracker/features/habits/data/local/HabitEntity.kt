@@ -19,5 +19,6 @@ data class HabitEntity(
     val maxStreak: Int,
     val isActive: Boolean,
     val reminderEnabled: Boolean = false,
-    val reminderTime: String? = null
+    val reminderTime: String? = null,
+    val icon: String? = null,
 )

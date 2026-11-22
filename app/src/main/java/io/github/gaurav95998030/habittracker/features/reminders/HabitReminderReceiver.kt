@@ -22,7 +22,10 @@ import io.github.gaurav95998030.habittracker.features.habits.domain.repository.H
 import io.github.gaurav95998030.habittracker.features.widget.HabitWidgetProvider
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import io.github.gaurav95998030.habittracker.features.settings.domain.repository.SettingsRepository
+import java.util.Calendar
 import java.time.LocalDate
 import javax.inject.Inject
 
@@ -31,11 +34,14 @@ class HabitReminderReceiver : BroadcastReceiver() {
 
     @Inject lateinit var scheduler: HabitReminderScheduler
     @Inject lateinit var repository: HabitRepository
+    @Inject lateinit var settingsRepository: SettingsRepository
 
     override fun onReceive(context: Context, intent: Intent) {
         when (intent.action) {
             ReminderConstants.ACTION_FIRE_REMINDER -> handleFire(context, intent)
             ReminderConstants.ACTION_MARK_DONE -> handleMarkDone(context, intent)
+            ReminderConstants.ACTION_SNOOZE -> handleSnooze(context, intent)
+            ReminderConstants.ACTION_FIRE_SNOOZED -> handleFire(context, intent, rearmDaily = false)
         }
     }
 
@@ -44,7 +50,7 @@ class HabitReminderReceiver : BroadcastReceiver() {
      * streak line reflects the current completion state, post the notification, and
      * re-arm tomorrow's alarm (daily repeat).
      */
-    private fun handleFire(context: Context, intent: Intent) {
+    private fun handleFire(context: Context, intent: Intent, rearmDaily: Boolean = true) {
         val habitId = intent.getStringExtra(ReminderConstants.EXTRA_HABIT_ID) ?: return
         val fallbackName = intent.getStringExtra(ReminderConstants.EXTRA_HABIT_NAME).orEmpty()
         val fallbackColor = intent.getStringExtra(ReminderConstants.EXTRA_HABIT_COLOR).orEmpty()
@@ -62,12 +68,24 @@ class HabitReminderReceiver : BroadcastReceiver() {
                 val streak = habit?.let { currentStreakOf(it) } ?: 0
                 val alreadyDone = habit?.completedDates?.contains(LocalDate.now().toString()) == true
 
-                if (!alreadyDone) {
+                // Paused habits and the quiet-hours window suppress the post, but the
+                // daily alarm still re-arms below so tomorrow's reminder survives.
+                val paused = habit?.isActive == false
+                val quiet = runCatching {
+                    val now = Calendar.getInstance()
+                    settingsRepository.quietHours.first()
+                        .contains(now.get(Calendar.HOUR_OF_DAY) * 60 + now.get(Calendar.MINUTE))
+                }.getOrDefault(false)
+
+                if (!alreadyDone && !paused && !quiet) {
                     showNotification(context, habitId, name, colorHex, streak)
                 }
 
-                // Re-schedule for tomorrow so the daily reminder keeps firing.
-                if (reminderTime != null) {
+                // Re-schedule for tomorrow so the daily reminder keeps firing — unless
+                // the habit loaded as paused or with its reminder off. (A failed load
+                // keeps the old behaviour and re-arms with the intent's fallbacks.)
+                val stillWanted = habit == null || (habit.isActive && habit.reminderEnabled)
+                if (rearmDaily && reminderTime != null && stillWanted) {
                     scheduler.schedule(
                         Habit(
                             id = habitId,
@@ -118,6 +136,15 @@ class HabitReminderReceiver : BroadcastReceiver() {
                 pending.finish()
             }
         }
+    }
+
+    /** "Snooze 1h": dismiss now, re-post once in an hour via a one-shot alarm. */
+    private fun handleSnooze(context: Context, intent: Intent) {
+        val habitId = intent.getStringExtra(ReminderConstants.EXTRA_HABIT_ID) ?: return
+        val name = intent.getStringExtra(ReminderConstants.EXTRA_HABIT_NAME).orEmpty()
+        val color = intent.getStringExtra(ReminderConstants.EXTRA_HABIT_COLOR).orEmpty()
+        NotificationManagerCompat.from(context).cancel(habitId.hashCode())
+        scheduler.scheduleSnooze(habitId, name, color)
     }
 
     @RequiresApi(Build.VERSION_CODES.O)
@@ -183,6 +210,20 @@ class HabitReminderReceiver : BroadcastReceiver() {
             piFlags
         )
 
+        // "Snooze 1h" action → back to this receiver with ACTION_SNOOZE.
+        val snoozeIntent = Intent(context, HabitReminderReceiver::class.java).apply {
+            action = ReminderConstants.ACTION_SNOOZE
+            putExtra(ReminderConstants.EXTRA_HABIT_ID, habitId)
+            putExtra(ReminderConstants.EXTRA_HABIT_NAME, habitName)
+            putExtra(ReminderConstants.EXTRA_HABIT_COLOR, habitColorHex)
+        }
+        val snoozePi = PendingIntent.getBroadcast(
+            context,
+            habitId.hashCode() xor 0x5A00,
+            snoozeIntent,
+            piFlags
+        )
+
         val title = if (habitName.isNotBlank()) "Time for $habitName 🔥" else "Habit reminder"
         val body = when {
             streak >= 1 -> "You're on a $streak-day streak. Keep it alive — check in now."
@@ -202,6 +243,7 @@ class HabitReminderReceiver : BroadcastReceiver() {
             )
             .setContentIntent(contentIntent)
             .addAction(R.drawable.ic_notification_reminder, "Mark done", markDonePi)
+            .addAction(R.drawable.ic_notification_reminder, "Snooze 1h", snoozePi)
             .setAutoCancel(true)
             // Pre-O these drive heads-up; on O+ the channel takes over.
             .setPriority(NotificationCompat.PRIORITY_HIGH)

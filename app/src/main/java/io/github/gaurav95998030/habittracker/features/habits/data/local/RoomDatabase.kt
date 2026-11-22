@@ -8,7 +8,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 
 @Database(
     entities = [HabitEntity::class],
-    version = 2,
+    version = 3,
     exportSchema = true
 )
 @TypeConverters(ListConverter::class)
@@ -20,6 +20,13 @@ abstract class HabitDatabase : RoomDatabase() {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE habits ADD COLUMN reminderEnabled INTEGER NOT NULL DEFAULT 0")
                 db.execSQL("ALTER TABLE habits ADD COLUMN reminderTime TEXT")
+            }
+        }
+
+        /** v3: per-habit Phosphor icon name (nullable → falls back to the category icon). */
+        val MIGRATION_2_3: Migration = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE habits ADD COLUMN icon TEXT")
             }
         }
     }

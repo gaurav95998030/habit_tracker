@@ -12,6 +12,12 @@ object ReminderConstants {
 
     // Fired by the "Mark done" notification action — checks the habit off for today.
     const val ACTION_MARK_DONE = "io.github.gaurav95998030.habittracker.ACTION_MARK_DONE"
+
+    // Fired by the "Snooze 1h" notification action — re-posts the reminder an hour later.
+    const val ACTION_SNOOZE = "io.github.gaurav95998030.habittracker.ACTION_SNOOZE"
+    // One-shot alarm armed by snooze. Distinct action so it never replaces the daily alarm.
+    const val ACTION_FIRE_SNOOZED = "io.github.gaurav95998030.habittracker.ACTION_FIRE_SNOOZED"
+    const val SNOOZE_MINUTES = 60
     const val DEEPLINK_SCHEME = "habit"
     const val DEEPLINK_HOST = "detail"
 

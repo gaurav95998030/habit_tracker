@@ -32,7 +32,7 @@ class BootReceiver : BroadcastReceiver() {
                 // Master switch wins after reboot — if the user disabled reminders
                 // globally before powering off, don't silently re-arm everything.
                 if (!settingsRepository.notificationsEnabled.first()) return@launch
-                val habits = repository.getHabitsWithReminder()
+                val habits = repository.getHabitsWithReminder().filter { it.isActive }
                 scheduler.rescheduleAll(habits)
             } finally {
                 pendingResult.finish()

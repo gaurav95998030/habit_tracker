@@ -14,5 +14,7 @@ data class Habit(
     val isActive: Boolean,
     val reminderEnabled: Boolean = false,
     // HH:mm 24h format, null when no reminder set
-    val reminderTime: String? = null
+    val reminderTime: String? = null,
+    // Phosphor icon name ("ph-xxx"); null → derived from category (HabitCatalog.iconFor)
+    val icon: String? = null,
 )
