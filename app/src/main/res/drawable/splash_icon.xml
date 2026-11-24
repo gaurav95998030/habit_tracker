@@ -1,0 +1,7 @@
+<!-- 240dp canvas; the mark sits inside the 160dp circle Android 12+ masks to. -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:width="160dp" android:height="160dp" android:gravity="center"
+          android:drawable="@drawable/ic_launcher_background_circle" />
+    <item android:width="80dp" android:height="80dp" android:gravity="center"
+          android:drawable="@drawable/ic_bolt" />
+</layer-list>

@@ -15,6 +15,14 @@ import androidx.annotation.RequiresApi
 import androidx.core.content.ContextCompat
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.background
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.tween
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import android.os.SystemClock
+import android.provider.Settings
+import android.view.animation.PathInterpolator
+import io.github.gaurav95998030.habittracker.commons.ui.BrandedLaunch
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.LaunchedEffect
@@ -38,6 +46,8 @@ import io.github.gaurav95998030.habittracker.ui.theme.AppTheme
 import io.github.gaurav95998030.habittracker.ui.theme.Habit_TrackerTheme
 import dagger.hilt.android.AndroidEntryPoint
 
+private const val SPLASH_MAX_HOLD_MS = 2000L
+
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
 
@@ -53,7 +63,30 @@ class MainActivity : ComponentActivity() {
 
     @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate(savedInstanceState: Bundle?) {
+        val splash = installSplashScreen()
         super.onCreate(savedInstanceState)
+        // Hold the system splash until habits are loaded from Room and the onboarding
+        // flag is known (so we land on the right screen), capped so a slow/failed DB
+        // read can never trap the user on the splash.
+        val splashStart = SystemClock.uptimeMillis()
+        splash.setKeepOnScreenCondition {
+            val waiting = !viewModel.isReady.value || settingsViewModel.onboardingCompleted.value == null
+            waiting && SystemClock.uptimeMillis() - splashStart < SPLASH_MAX_HOLD_MS
+        }
+        // Shrink + fade the system icon into the branded launch icon.
+        splash.setOnExitAnimationListener { provider ->
+            provider.iconView.animate()
+                .scaleX(0.53f).scaleY(0.53f).alpha(0f)
+                .setDuration(300L)
+                .setInterpolator(PathInterpolator(0.2f, 0f, 0f, 1f))
+                .withEndAction { provider.remove() }
+                .start()
+        }
+        // Branded launch only on a fresh launcher start: not on config changes / process
+        // restore, not from a notification deep link, not with animations turned off.
+        val showBranded = savedInstanceState == null &&
+            (intent?.action == null || intent?.action == Intent.ACTION_MAIN) &&
+            !isReducedMotion()
         enableEdgeToEdge()
         requestNotificationPermissionIfNeeded()
         // Handle a notification tap that cold-started us.
@@ -85,21 +118,32 @@ class MainActivity : ComponentActivity() {
             }
 
             Habit_TrackerTheme(darkTheme = isDark) {
-                Box(Modifier.fillMaxSize().background(AppTheme.colors.background)) {
-                    when (onboarded) {
-                        null -> Unit // first DataStore read in flight — blank, no flash
-                        false -> OnboardingScreen(onFinish = ::finishOnboarding)
-                        true -> MainScreen(
-                            habitViewModel = viewModel,
-                            settingsViewModel = settingsViewModel,
-                            motivationViewModel = motivationViewModel,
-                            widgetPromoEligible = startedOnboarded == true,
-                        )
+                var launched by rememberSaveable { mutableStateOf(!showBranded) }
+                Crossfade(targetState = launched, animationSpec = tween(300), label = "launch") { done ->
+                    if (!done) {
+                        BrandedLaunch(onFinished = { launched = true })
+                    } else {
+                        Box(Modifier.fillMaxSize().background(AppTheme.colors.background)) {
+                            when (onboarded) {
+                                null -> Unit // first DataStore read in flight — blank, no flash
+                                false -> OnboardingScreen(onFinish = ::finishOnboarding)
+                                true -> MainScreen(
+                                    habitViewModel = viewModel,
+                                    settingsViewModel = settingsViewModel,
+                                    motivationViewModel = motivationViewModel,
+                                    widgetPromoEligible = startedOnboarded == true,
+                                )
+                            }
+                        }
                     }
                 }
             }
         }
     }
+
+    /** "Remove animations" (animator scale 0) → skip the branded launch. */
+    private fun isReducedMotion(): Boolean =
+        Settings.Global.getFloat(contentResolver, Settings.Global.ANIMATOR_DURATION_SCALE, 1f) == 0f
 
     private fun finishOnboarding(result: OnboardingResult) {
         settingsViewModel.completeOnboarding(result.name, result.categories)

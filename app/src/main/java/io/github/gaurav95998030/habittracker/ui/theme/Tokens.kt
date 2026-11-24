@@ -129,3 +129,13 @@ object StoryPalette {
     val tintAmber = Color(0xFF3A2600)
     val tintRed = Color(0xFF3A1410)
 }
+
+/** Brand mark + branded launch colours (Splash Kit). */
+object BrandPalette {
+    val lime = Color(0xFFC2FF4D)
+    val mint = Color(0xFF34E5A0)
+    val boltInk = Color(0xFF08130A)
+    /** Radial glow at 50% / 35% over the launch background. */
+    val launchGlowDark = Color(0xFF16301A)
+    val launchGlowLight = Color(0xFFE3F2D6)
+}

@@ -15,6 +15,7 @@ firebaseBom = "34.7.0"
 firebaseFirestoreKtx = "26.0.2"
 daggerHilt = "2.57.1"
 datastore = "1.1.1"
+splashscreen = "1.0.1"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -40,6 +41,8 @@ firebase-analytics = { group = "com.google.firebase", name = "firebase-analytics
 firebase-firestore-ktx = { group = "com.google.firebase", name = "firebase-firestore-ktx" }
 google-firebase-firestore-ktx = { group = "com.google.firebase", name = "firebase-firestore-ktx", version.ref = "firebaseFirestoreKtx" }
 androidx-datastore-preferences = { group = "androidx.datastore", name = "datastore-preferences", version.ref = "datastore" }
+
+androidx-core-splashscreen = { group = "androidx.core", name = "core-splashscreen", version.ref = "splashscreen" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

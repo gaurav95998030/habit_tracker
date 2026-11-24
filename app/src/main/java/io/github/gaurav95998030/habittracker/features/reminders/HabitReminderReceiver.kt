@@ -188,7 +188,7 @@ class HabitReminderReceiver : BroadcastReceiver() {
         val title = if (missed.size == 1) "You missed ${missed[0].name} yesterday" else "You missed ${missed.size} habits yesterday"
         val body = if (missed.size == 1) "What got in the way? One tap is enough." else "What got in the way? Log a reason to spot patterns."
         val builder = NotificationCompat.Builder(context, ReminderConstants.CHANNEL_ID)
-            .setSmallIcon(R.drawable.ic_notification_reminder)
+            .setSmallIcon(R.drawable.ic_stat_bolt)
             .setContentTitle(title)
             .setContentText(body)
             .setContentIntent(pi)
@@ -294,7 +294,7 @@ class HabitReminderReceiver : BroadcastReceiver() {
         val soundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
 
         val builder = NotificationCompat.Builder(context, ReminderConstants.CHANNEL_ID)
-            .setSmallIcon(R.drawable.ic_notification_reminder)
+            .setSmallIcon(R.drawable.ic_stat_bolt)
             .setContentTitle(title)
             .setContentText(body)
             .setStyle(

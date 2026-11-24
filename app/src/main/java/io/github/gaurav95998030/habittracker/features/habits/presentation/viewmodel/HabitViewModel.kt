@@ -49,6 +49,11 @@ class HabitViewModel @Inject constructor(
 
     private val _uiState = MutableStateFlow(HabitState())
     val uiState = _uiState.asStateFlow()
+    private val _isReady = MutableStateFlow(false)
+
+    /** True once the first habit load from Room has finished (holds the system splash). */
+    val isReady = _isReady.asStateFlow()
+
     var formState by mutableStateOf(HabitFormState())
         private set
 
@@ -154,18 +159,25 @@ class HabitViewModel @Inject constructor(
     fun getHabits(){
         try{
            viewModelScope.launch {
-               _uiState.update {
-                   it.copy(
-                       isLoading = true
-                   )
-               }
-               val habits = getHabitsUseCase.invoke()
-               Log.d("HabitViewModel", "getHabits $habits")
-               _uiState.update {
-                   it.copy(
-                       habits = habits,
-                       isLoading = false
-                   )
+               try {
+                   _uiState.update {
+                       it.copy(
+                           isLoading = true
+                       )
+                   }
+                   val habits = getHabitsUseCase.invoke()
+                   Log.d("HabitViewModel", "getHabits $habits")
+                   _uiState.update {
+                       it.copy(
+                           habits = habits,
+                           isLoading = false
+                       )
+                   }
+               } catch (e: Exception) {
+                   Log.e("HabitViewModel", "Error getting habits", e)
+                   _uiState.update { it.copy(isLoading = false) }
+               } finally {
+                   _isReady.value = true
                }
            }
         }catch (e: Exception){
