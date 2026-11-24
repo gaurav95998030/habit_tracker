@@ -41,9 +41,9 @@ Release signing is read from `~/.gradle/gradle.properties` (`RELEASE_STORE_FILE`
 
 Feature-first Clean Architecture. Everything lives under `io.github.gaurav95998030.habittracker.features.<feature>.{data,domain,presentation}` with Hilt binding layers in `di/`, cross-feature navigation in `navigation/`, shared UI atoms in `commons/ui/`, and theming in `ui/theme/`.
 
-Features: **`habits`** (the core), **`insights`** (stats screen), **`reminders`** (alarm-driven notifications + Notification Center), **`settings`** (theme, profile name, master notification switch, quiet hours), **`onboarding`** (4-step first run), **`widget`** (RemoteViews home-screen widget + Compose "add the widget" nudge).
+Features: **`habits`** (the core), **`insights`** (stats screen), **`reminders`** (alarm-driven notifications + Notification Center), **`settings`** (theme, profile name, master notification switch, quiet hours), **`onboarding`** (4-step first run), **`motivation`** (stories & reviews, comeback mode, miss logging, energy check-ins, habit stacks, starter plans), **`widget`** (RemoteViews home-screen widget + Compose "add the widget" nudge).
 
-The UI implements the **HabitForge "Aurora"** design (source: a bundled React prototype, `HabitForge-All-Screens.html`). Screens: onboarding (welcome/name/categories/first habit), Home (loading/empty/list), habit detail + add/edit sheets, Insights, Settings, Notification Center, widget nudge sheet, and the reminder notification (Mark done / Snooze 1h).
+The UI implements the **HabitForge "Aurora"** design (source: a bundled React prototype, `HabitForge-All-Screens.html`). Screens: onboarding (welcome/name/categories/first habit), Home (loading/empty/list), habit detail + add/edit sheets, Insights, Settings, Notification Center, widget nudge sheet, and the reminder notification (Mark done / Snooze 1h). A second design file (`HabitForge-Motivation-Screens.html`) added the `motivation` feature screens.
 
 ### Navigation
 
@@ -51,8 +51,9 @@ The UI implements the **HabitForge "Aurora"** design (source: a bundled React pr
 - `MainScreen` owns the `NavController`, derives the selected tab from the current backstack entry, and renders a `Scaffold` with `AppBottomBar` + `AppNavHost`.
 - `TopLevelDestination` (enum) is the single source of truth for the three tabs: `Home` (route `home`, labelled "Today" → `HabitListScreen`), `Insights` (→ `InsightsScreen`), `Settings` (→ `SettingsScreen`). Keep the bar and the NavHost in sync through this enum.
 - The tab-switch transaction in `MainScreen.onTabSelected` uses the standard `popUpTo(start){saveState} + launchSingleTop + restoreState` recipe — those flags are load-bearing (per-tab state preservation, no backstack growth). Don't strip them.
-- The bottom bar is hidden on non-tab routes (`NOTIFICATIONS_ROUTE`). `MainScreen` also hosts the widget nudge (`WidgetPromoSheet`, once per install + from Settings).
-- `HabitViewModel` and `SettingsViewModel` are created by the Activity (`by viewModels()`) and **passed down** into `AppNavHost`, so `HabitListScreen` and `InsightsScreen` share one instance and deep-link events delivered to the Activity reach the same ViewModel the UI observes. (`navigation/NavGraph.kt` is a dead empty stub.)
+- The bottom bar is hidden on non-tab routes (`NOTIFICATIONS_ROUTE`, `PLANS_ROUTE`, `MISSES_ROUTE`, `CHECKIN_ROUTE`, `stack/{stackId}`).
+- `MainScreen` also hosts two overlays: the full-screen story viewer (`MotivationStory`, opened from the Home story row or Insights' year card; closing marks the story key seen) and the miss-reason sheet (`MissLogSheet`, opened by the 8 AM notification via `ACTION_OPEN_MISS_LOG` or from "Why you miss"). `MainScreen` also hosts the widget nudge (`WidgetPromoSheet`, once per install + from Settings).
+- `HabitViewModel`, `SettingsViewModel` and `MotivationViewModel` are created by the Activity (`by viewModels()`) and **passed down** into `AppNavHost`, so `HabitListScreen` and `InsightsScreen` share one instance and deep-link events delivered to the Activity reach the same ViewModel the UI observes. (`navigation/NavGraph.kt` is a dead empty stub.)
 
 ### Layering (feature: `habits`)
 
@@ -71,12 +72,14 @@ The UI implements the **HabitForge "Aurora"** design (source: a bundled React pr
 - **`reminders`** — `HabitReminderScheduler` (`@Singleton`) arms per-habit alarms via `AlarmManagerCompat.setAndAllowWhileIdle` (inexact, doze-friendly, no exact-alarm permission needed); `HabitReminderReceiver` (BroadcastReceiver) posts the notification; `BootReceiver` re-schedules after reboot/app-update; `ReminderConstants` holds channel + intent-extra + deep-link keys. Notification taps deep-link into `MainActivity.handleDeepLink` → `HabitViewModel.openHabitDetail(id)`, which stashes `pendingDetailHabitId` in state for the list screen to open the detail sheet. Notification actions: "Mark done" and "Snooze 1h" (`scheduleSnooze` — a separate one-shot alarm, `ACTION_FIRE_SNOOZED`). The receiver skips posting for paused habits and inside quiet hours (but still re-arms the daily alarm). `presentation/NotificationCenterBuilder` derives the last 9 days of reminders (Upcoming/Pending/Done/Missed) from the habit list — there is no history table; `pendingCount` drives the Home bell badge.
 - **`settings`** — `SettingsRepository` over DataStore Preferences exposes `themePreference` (Light/Dark/System), `notificationsEnabled` (master reminder switch), `userName`, `onboardingCompleted`, `focusCategories` (float first in the add sheet), `widgetPromoSeen`, and `quietHours` (`QuietHours`, window may wrap midnight), with suspend setters. `SettingsViewModel` feeds the theme flow into `MainActivity`, which chooses `darkTheme` for `Habit_TrackerTheme`.
 
+- **`motivation`** — `domain/ReviewStats` (pure: week/month/year reviews, daily-boost content, comeback detection, story keys), `domain/MotivationInsights` (missed-yesterday, miss patterns + suggestion, energy vs completion, stack progress), `domain/PlanCatalog`, `domain/Quotes`. Persistence: Room tables `miss_logs`, `energy_checkins`, `habit_stacks`, `stack_steps` (DB v4, `MIGRATION_3_4`) via `MotivationDao` → `MotivationRepository` → use cases in `domain/usecases/MotivationUseCases.kt`; DataStore holds seen story keys, saved quotes and active plans (`planId|startDate`). Stack steps / miss logs are **not** cascaded on habit delete (so undo works) — readers drop rows whose habit is gone. `HabitReminderScheduler.scheduleMissCheck()` (armed from `HabitTrackerApplication` and `BootReceiver`, re-armed on fire) posts "You missed X yesterday". Stories are always dark (`StoryPalette`) and share cards export via `ShareCard` + `rememberGraphicsLayer` → `shareBitmap` (FileProvider `${applicationId}.fileprovider`, `res/xml/file_paths.xml`).
+
 ### Dependency injection
 
 Hilt modules in `di/`:
 
-- `DatabaseModule` (`SingletonComponent`) — provides `HabitDatabase` (built with `.addMigrations(HabitDatabase.MIGRATION_1_2)`) and `HabitDao`.
-- `RepositoryModule` (`SingletonComponent`) — binds `HabitRepository` → `HabitRepositoryImpl`.
+- `DatabaseModule` (`SingletonComponent`) — provides `HabitDatabase` (with `MIGRATION_1_2`, `MIGRATION_2_3`, `MIGRATION_3_4`), `HabitDao` and `MotivationDao`.
+- `RepositoryModule` (`SingletonComponent`) — binds `HabitRepository` → `HabitRepositoryImpl` and `MotivationRepository` → `MotivationRepositoryImpl`.
 - `SettingsModule` (`SingletonComponent`) — provides the `DataStore<Preferences>` and `SettingsRepository`.
 - `UseCaseModule` (`ViewModelComponent`, `@ViewModelScoped`) — provides each habit use case. When adding a new use case, register it here, not at the injection site.
 
@@ -122,4 +125,4 @@ These resolve from `LocalAppColors` / `LocalAppTextStyles` composition locals. D
 
 ## Notable design docs
 
-`IMPLEMENTATION_SUMMARY.md` and `HEATMAP_IMPLEMENTATION.md` describe a planned `HabitCompletion` / `HeatmapRange` / `HeatmapViewModel` subsystem. Most of those files are **not yet present in `src/`** — only the unit tests (`DateRangeCalculatorTest`, `CompletionMapperTest`) exist, and **they don't compile**, which breaks `./gradlew test` as a whole. Treat those docs as a design target, not current state; check the tree before citing filenames from them. The redesign's logic is covered by `src/test/.../redesign/RedesignLogicTest.kt` (move the two broken tests aside to run it).
+`IMPLEMENTATION_SUMMARY.md` and `HEATMAP_IMPLEMENTATION.md` describe a planned `HabitCompletion` / `HeatmapRange` / `HeatmapViewModel` subsystem. Most of those files are **not yet present in `src/`** — only the unit tests (`DateRangeCalculatorTest`, `CompletionMapperTest`) exist, and **they don't compile**, which breaks `./gradlew test` as a whole. Treat those docs as a design target, not current state; check the tree before citing filenames from them. The redesign's logic is covered by `src/test/.../redesign/` (`RedesignLogicTest`, `ReviewStatsTest`, `MotivationInsightsTest`) — move the two broken tests aside to run them.

@@ -134,6 +134,29 @@ class HabitReminderScheduler @Inject constructor(
 
     private fun snoozeRequestCode(habitId: String) = habitId.hashCode() xor 0x5A0E
 
+    private companion object {
+        const val MISS_CHECK_REQUEST_CODE = 0x0315
+    }
+
+    /**
+     * Daily ~8 AM alarm that checks for habits missed yesterday and asks why. Idempotent
+     * (same request code + FLAG_UPDATE_CURRENT); the receiver re-arms it after each fire.
+     */
+    fun scheduleMissCheck() {
+        ensureNotificationChannel()
+        val intent = Intent(context, HabitReminderReceiver::class.java).apply {
+            action = ReminderConstants.ACTION_MISS_CHECK
+        }
+        val pi = PendingIntent.getBroadcast(
+            context, MISS_CHECK_REQUEST_CODE, intent,
+            pendingIntentFlags(mutable = false) or PendingIntent.FLAG_UPDATE_CURRENT
+        )
+        AlarmManagerCompat.setAndAllowWhileIdle(
+            alarmManager, AlarmManager.RTC_WAKEUP,
+            nextTriggerMillis(ReminderConstants.MISS_CHECK_HOUR, 0), pi
+        )
+    }
+
     fun rescheduleAll(habits: List<Habit>) {
         habits.filter { it.reminderEnabled && it.reminderTime != null }.forEach { schedule(it) }
     }

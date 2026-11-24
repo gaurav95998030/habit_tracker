@@ -68,6 +68,16 @@ import io.github.gaurav95998030.habittracker.features.habits.presentation.habit_
 import io.github.gaurav95998030.habittracker.features.habits.presentation.states.ALL_CATEGORIES
 import io.github.gaurav95998030.habittracker.features.habits.presentation.viewmodel.HabitViewModel
 import io.github.gaurav95998030.habittracker.features.reminders.presentation.NotificationCenterBuilder
+import io.github.gaurav95998030.habittracker.features.motivation.presentation.StoryItem
+import io.github.gaurav95998030.habittracker.features.motivation.presentation.StackCard
+import io.github.gaurav95998030.habittracker.features.motivation.presentation.StackEditorSheet
+import io.github.gaurav95998030.habittracker.features.motivation.domain.model.HabitStack
+import io.github.gaurav95998030.habittracker.features.motivation.domain.model.StackStep
+import io.github.gaurav95998030.habittracker.commons.ui.HfBottomSheet
+import io.github.gaurav95998030.habittracker.commons.ui.HfButtonVariant
+import androidx.compose.foundation.layout.navigationBarsPadding
+import io.github.gaurav95998030.habittracker.features.motivation.presentation.StoryStrip
+import io.github.gaurav95998030.habittracker.features.motivation.presentation.storyItems
 import io.github.gaurav95998030.habittracker.ui.theme.AppShapes
 import io.github.gaurav95998030.habittracker.ui.theme.AppTheme
 import io.github.gaurav95998030.habittracker.ui.theme.PhIcons
@@ -88,6 +98,13 @@ fun HabitListScreen(
     viewModel: HabitViewModel,
     userName: String,
     focusCategories: Set<String>,
+    seenStories: Set<String>,
+    onOpenStory: (StoryItem) -> Unit,
+    stacks: List<HabitStack>,
+    onOpenStack: (String) -> Unit,
+    /** Saves a new stack and returns its id. */
+    onCreateStack: (name: String, steps: List<StackStep>) -> String,
+    onOpenPlans: () -> Unit,
     onOpenNotifications: () -> Unit,
     onOpenSettings: () -> Unit,
 ) {
@@ -99,6 +116,8 @@ fun HabitListScreen(
     val scope = rememberCoroutineScope()
 
     var showAddSheet by rememberSaveable { mutableStateOf(false) }
+    var showCreateMenu by rememberSaveable { mutableStateOf(false) }
+    var showStackEditor by rememberSaveable { mutableStateOf(false) }
     var detailHabitId by rememberSaveable { mutableStateOf<String?>(null) }
     val detailHabit = habits.firstOrNull { it.id == detailHabitId }
 
@@ -108,6 +127,16 @@ fun HabitListScreen(
         if (habits.any { it.id == id }) {
             detailHabitId = id
             viewModel.consumePendingDetail()
+        }
+    }
+
+    // "Why you miss" → change a habit's reminder: open its edit sheet here.
+    LaunchedEffect(state.pendingEditHabitId, habits) {
+        val id = state.pendingEditHabitId ?: return@LaunchedEffect
+        habits.firstOrNull { it.id == id }?.let { h ->
+            viewModel.startEditingHabit(h)
+            showAddSheet = true
+            viewModel.consumePendingEdit()
         }
     }
 
@@ -151,6 +180,14 @@ fun HabitListScreen(
                         modifier = Modifier.padding(bottom = 8.dp),
                     )
                 }
+                if (!state.isLoading) {
+                    val stories = storyItems(habits)
+                    if (stories.isNotEmpty()) {
+                        item(key = "stories") {
+                            StoryStrip(stories, seenStories, onOpenStory, Modifier.padding(bottom = 8.dp))
+                        }
+                    }
+                }
                 if (!state.isLoading && active.isNotEmpty()) {
                     item(key = "progress") {
                         ProgressCard(done = doneCount, total = active.size, modifier = Modifier.padding(bottom = 10.dp))
@@ -168,10 +205,15 @@ fun HabitListScreen(
                         }
                     }
                 }
+                if (!state.isLoading && filter == ALL_CATEGORIES && stacks.isNotEmpty()) {
+                    items(stacks, key = { "stack-${it.id}" }) { st ->
+                        StackCard(st, habits, onOpen = { onOpenStack(st.id) })
+                    }
+                }
                 when {
                     state.isLoading -> items(4, key = { "shimmer$it" }) { HabitTileShimmer() }
                     habits.isEmpty() -> item(key = "empty") {
-                        EmptyState(onAdd = { viewModel.resetForm(); showAddSheet = true })
+                        EmptyState(onAdd = { viewModel.resetForm(); showAddSheet = true }, onBrowsePlans = onOpenPlans)
                     }
                     shown.isEmpty() -> item(key = "emptyFilter") {
                         Text(
@@ -197,7 +239,7 @@ fun HabitListScreen(
         }
 
         AddFab(
-            onClick = { viewModel.resetForm(); showAddSheet = true },
+            onClick = { showCreateMenu = true },
             modifier = Modifier.align(Alignment.BottomEnd).padding(end = 20.dp, bottom = 16.dp),
         )
 
@@ -210,6 +252,28 @@ fun HabitListScreen(
                 shape = RoundedCornerShape(16.dp),
             )
         }
+    }
+
+    if (showCreateMenu) {
+        CreateMenuSheet(
+            onNewHabit = { showCreateMenu = false; viewModel.resetForm(); showAddSheet = true },
+            onNewStack = { showCreateMenu = false; showStackEditor = true },
+            onPlans = { showCreateMenu = false; onOpenPlans() },
+            onDismiss = { showCreateMenu = false },
+        )
+    }
+
+    if (showStackEditor) {
+        StackEditorSheet(
+            initial = null,
+            habits = habits,
+            onSave = { name, steps ->
+                showStackEditor = false
+                onOpenStack(onCreateStack(name, steps))
+            },
+            onDelete = null,
+            onDismiss = { showStackEditor = false },
+        )
     }
 
     if (showAddSheet) {
@@ -242,6 +306,7 @@ fun HabitListScreen(
             },
             onDelete = { onDelete(detailHabit) },
             onSetActive = { viewModel.setHabitActive(detailHabit, it) },
+            onStartStreak = { viewModel.toggleToday(detailHabit.id) },
         )
     }
 }
@@ -369,7 +434,7 @@ private fun ProgressCard(done: Int, total: Int, modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun EmptyState(onAdd: () -> Unit) {
+private fun EmptyState(onAdd: () -> Unit, onBrowsePlans: () -> Unit) {
     val c = AppTheme.colors
     Column(
         Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 54.dp),
@@ -403,6 +468,8 @@ private fun EmptyState(onAdd: () -> Unit) {
             modifier = Modifier.padding(top = 8.dp).widthIn(max = 250.dp),
         )
         HfButton("Add a habit", onClick = onAdd, icon = PhIcons.Plus, modifier = Modifier.padding(top = 24.dp))
+        HfButton("Browse starter plans", onClick = onBrowsePlans, variant = HfButtonVariant.Ghost, icon = PhIcons.RocketLaunch,
+            modifier = Modifier.padding(top = 6.dp))
     }
 }
 
@@ -421,5 +488,38 @@ private fun AddFab(onClick: () -> Unit, modifier: Modifier = Modifier) {
         contentAlignment = Alignment.Center,
     ) {
         PhIcon(PhIcons.Plus, size = 28.dp, tint = c.onPrimary, weight = PhWeight.Bold)
+    }
+}
+
+/** The add button's chooser: one habit, a stack of habits, or a starter plan. */
+@Composable
+private fun CreateMenuSheet(onNewHabit: () -> Unit, onNewStack: () -> Unit, onPlans: () -> Unit, onDismiss: () -> Unit) {
+    val c = AppTheme.colors
+    HfBottomSheet(onDismiss = onDismiss) {
+        Column(Modifier.fillMaxWidth().navigationBarsPadding().padding(start = 22.dp, end = 22.dp, top = 6.dp, bottom = 22.dp)) {
+            Text("Add", style = AppTheme.textStyles.titleLarge.copy(fontSize = 21.sp), color = c.textPrimary, modifier = Modifier.padding(bottom = 14.dp))
+            listOf(
+                Triple(PhIcons.Plus, "New habit" to "One thing, every day", onNewHabit),
+                Triple(PhIcons.Stack, "Habit stack" to "Chain habits so each one unlocks the next", onNewStack),
+                Triple(PhIcons.RocketLaunch, "Starter plan" to "A 21- or 30-day program, added in one tap", onPlans),
+            ).forEach { (icon, text, action) ->
+                val shape = RoundedCornerShape(AppShapes.tile)
+                Row(
+                    Modifier.padding(bottom = 10.dp).fillMaxWidth().clip(shape).background(c.surface).border(1.dp, c.glassBorder, shape)
+                        .clickable(onClick = action).padding(14.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Box(Modifier.size(42.dp).clip(RoundedCornerShape(13.dp)).background(c.primary.copy(alpha = 0.12f)), contentAlignment = Alignment.Center) {
+                        PhIcon(icon, size = 21.dp, tint = c.primary, weight = PhWeight.Bold)
+                    }
+                    HSpace(13.dp)
+                    Column(Modifier.weight(1f)) {
+                        Text(text.first, style = AppTheme.textStyles.titleSmall.copy(fontSize = 16.sp), color = c.textPrimary)
+                        Text(text.second, style = AppTheme.textStyles.bodySmall, color = c.textTertiary, modifier = Modifier.padding(top = 2.dp))
+                    }
+                    PhIcon(PhIcons.CaretRight, size = 18.dp, tint = c.textTertiary)
+                }
+            }
+        }
     }
 }

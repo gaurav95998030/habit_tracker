@@ -68,6 +68,35 @@ object PhIcons {
     const val BowlFood: String = "\uEAA4"
     const val Timer: String = "\uE492"
     const val CalendarBlank: String = "\uE10A"
+    const val AirplaneTilt: String = "\uE5D6"
+    const val ArrowUUpLeft: String = "\uE08A"
+    const val BatteryEmpty: String = "\uE0BE"
+    const val BatteryHigh: String = "\uE0C2"
+    const val BatteryLow: String = "\uE0C4"
+    const val BatteryMedium: String = "\uE0C6"
+    const val BookmarkSimple: String = "\uE0EA"
+    const val CalendarCheck: String = "\uE712"
+    const val CalendarDots: String = "\uE7B4"
+    const val ChartBarHorizontal: String = "\uE152"
+    const val Coffee: String = "\uE1C2"
+    const val Couch: String = "\uE7F6"
+    const val DeviceMobileSlash: String = "\uEE46"
+    const val Lightbulb: String = "\uE2DC"
+    const val ListChecks: String = "\uEADC"
+    const val LockSimple: String = "\uE308"
+    const val Pause: String = "\uE39E"
+    const val Percent: String = "\uE3B6"
+    const val Question: String = "\uE3E8"
+    const val Quotes: String = "\uE660"
+    const val RocketLaunch: String = "\uE3FE"
+    const val ShareNetwork: String = "\uE408"
+    const val Stack: String = "\uE466"
+    const val SunHorizon: String = "\uE5B6"
+    const val Thermometer: String = "\uE5C6"
+    const val TrendDown: String = "\uE4AC"
+    const val CaretUp: String = "\uE13C"
+    const val DotsSixVertical: String = "\uEAE2"
+    const val PencilSimpleLine: String = "\uEBC6"
 
     private val names: Map<String, String> = mapOf(
         "ph-arrow-clockwise" to ArrowClockwise,
@@ -131,6 +160,35 @@ object PhIcons {
         "ph-bowl-food" to BowlFood,
         "ph-timer" to Timer,
         "ph-calendar-blank" to CalendarBlank,
+        "ph-airplane-tilt" to AirplaneTilt,
+        "ph-arrow-u-up-left" to ArrowUUpLeft,
+        "ph-battery-empty" to BatteryEmpty,
+        "ph-battery-high" to BatteryHigh,
+        "ph-battery-low" to BatteryLow,
+        "ph-battery-medium" to BatteryMedium,
+        "ph-bookmark-simple" to BookmarkSimple,
+        "ph-calendar-check" to CalendarCheck,
+        "ph-calendar-dots" to CalendarDots,
+        "ph-chart-bar-horizontal" to ChartBarHorizontal,
+        "ph-coffee" to Coffee,
+        "ph-couch" to Couch,
+        "ph-device-mobile-slash" to DeviceMobileSlash,
+        "ph-lightbulb" to Lightbulb,
+        "ph-list-checks" to ListChecks,
+        "ph-lock-simple" to LockSimple,
+        "ph-pause" to Pause,
+        "ph-percent" to Percent,
+        "ph-question" to Question,
+        "ph-quotes" to Quotes,
+        "ph-rocket-launch" to RocketLaunch,
+        "ph-share-network" to ShareNetwork,
+        "ph-stack" to Stack,
+        "ph-sun-horizon" to SunHorizon,
+        "ph-thermometer" to Thermometer,
+        "ph-trend-down" to TrendDown,
+        "ph-caret-up" to CaretUp,
+        "ph-dots-six-vertical" to DotsSixVertical,
+        "ph-pencil-simple-line" to PencilSimpleLine,
     )
 
     /** Glyph for a "ph-xxx" name, or null when the icon isn't bundled. */

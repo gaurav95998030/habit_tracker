@@ -50,6 +50,20 @@ class SettingsViewModel @Inject constructor(
     val quietHours: StateFlow<QuietHours> =
         settingsRepository.quietHours.stateIn(viewModelScope, SharingStarted.Eagerly, QuietHours())
 
+    val seenStories: StateFlow<Set<String>> =
+        settingsRepository.seenStories.stateIn(viewModelScope, SharingStarted.Eagerly, emptySet())
+
+    val savedQuotes: StateFlow<Set<String>> =
+        settingsRepository.savedQuotes.stateIn(viewModelScope, SharingStarted.Eagerly, emptySet())
+
+    fun markStorySeen(key: String) {
+        viewModelScope.launch { settingsRepository.markStorySeen(key) }
+    }
+
+    fun setQuoteSaved(quote: String, saved: Boolean) {
+        viewModelScope.launch { settingsRepository.setQuoteSaved(quote, saved) }
+    }
+
     private val _onboardingCompleted = MutableStateFlow<Boolean?>(null)
 
     /**

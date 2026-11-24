@@ -405,6 +405,42 @@ class HabitViewModel @Inject constructor(
         }
     }
 
+    /** Ask Home to open the edit sheet for [habitId] (consumed by HabitListScreen). */
+    fun requestEditHabit(habitId: String) {
+        _uiState.update { it.copy(pendingEditHabitId = habitId) }
+    }
+
+    fun consumePendingEdit() {
+        _uiState.update { it.copy(pendingEditHabitId = null) }
+    }
+
+    /**
+     * Adds several habits at once (starter plans). Reminders start off; icons, colors
+     * and categories come from the plan.
+     */
+    fun addHabits(drafts: List<HabitDraft>) {
+        if (drafts.isEmpty()) return
+        viewModelScope.launch {
+            try {
+                val now = Instant.now().toString()
+                drafts.forEach { d ->
+                    addHabitUseCase.invoke(
+                        Habit(
+                            id = HabitUtil.generateUniqueId(), userId = "", name = d.name, description = "",
+                            completedDates = emptyList(), color = d.colorHex, category = d.category,
+                            createdDate = now, updatedDate = now, maxStreak = 0, isActive = true,
+                            reminderEnabled = false, reminderTime = null, icon = d.icon,
+                        )
+                    )
+                }
+                getHabits()
+                refreshWidget()
+            } catch (e: Exception) {
+                Log.e("HabitViewModel", "Error adding habits", e)
+            }
+        }
+    }
+
     fun consumePendingDetail() {
         _uiState.update { it.copy(pendingDetailHabitId = null) }
     }
@@ -423,3 +459,6 @@ class HabitViewModel @Inject constructor(
     }
 
 }
+
+/** Minimal spec for bulk-created habits ([colorHex] in storage form). */
+data class HabitDraft(val name: String, val category: String, val colorHex: String, val icon: String?)

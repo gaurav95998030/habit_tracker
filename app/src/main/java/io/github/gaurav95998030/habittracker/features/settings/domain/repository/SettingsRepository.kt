@@ -32,6 +32,15 @@ interface SettingsRepository {
 
     val quietHours: Flow<QuietHours>
 
+    /** Story keys already viewed (e.g. "boost:2026-11-24", "week:2026-W48", "month:2026-10"). */
+    val seenStories: Flow<Set<String>>
+
+    /** Daily-boost quotes the user bookmarked (quote text). */
+    val savedQuotes: Flow<Set<String>>
+
+    /** Running starter plans: plan id → start date ("yyyy-MM-dd"). */
+    val activePlans: Flow<Map<String, String>>
+
     suspend fun setThemePreference(value: ThemePreference)
     suspend fun setNotificationsEnabled(enabled: Boolean)
     suspend fun setUserName(name: String)
@@ -39,4 +48,8 @@ interface SettingsRepository {
     suspend fun setFocusCategories(categories: Set<String>)
     suspend fun setWidgetPromoSeen(seen: Boolean)
     suspend fun setQuietHours(value: QuietHours)
+    suspend fun markStorySeen(key: String)
+    suspend fun setQuoteSaved(quote: String, saved: Boolean)
+    /** Start (non-null [startDate]) or end (null) a starter plan. */
+    suspend fun setPlan(planId: String, startDate: String?)
 }

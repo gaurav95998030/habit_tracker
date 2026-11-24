@@ -18,6 +18,12 @@ object ReminderConstants {
     // One-shot alarm armed by snooze. Distinct action so it never replaces the daily alarm.
     const val ACTION_FIRE_SNOOZED = "io.github.gaurav95998030.habittracker.ACTION_FIRE_SNOOZED"
     const val SNOOZE_MINUTES = 60
+
+    // Daily morning check: "You missed X yesterday — what got in the way?"
+    const val ACTION_MISS_CHECK = "io.github.gaurav95998030.habittracker.ACTION_MISS_CHECK"
+    const val ACTION_OPEN_MISS_LOG = "io.github.gaurav95998030.habittracker.ACTION_OPEN_MISS_LOG"
+    const val MISS_CHECK_HOUR = 8
+    const val MISS_NOTIFICATION_ID = 0x0315
     const val DEEPLINK_SCHEME = "habit"
     const val DEEPLINK_HOST = "detail"
 

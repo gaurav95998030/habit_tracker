@@ -23,6 +23,8 @@ data class HabitState(
     // Set when a notification deep link or external trigger wants the detail
     // sheet for a specific habit to open. Consumed by the UI after the sheet shows.
     val pendingDetailHabitId: String? = null,
+    // Set when another screen (e.g. "Why you miss") wants Home to open the edit sheet.
+    val pendingEditHabitId: String? = null,
     val heatmapViewMode: HeatmapViewMode = HeatmapViewMode.Week,
     val selectedCategory: String = ALL_CATEGORIES,
 )

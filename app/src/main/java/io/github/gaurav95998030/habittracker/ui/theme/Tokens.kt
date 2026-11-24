@@ -46,6 +46,9 @@ object Accents {
         return if (color.luminance() > 0.45f) Color(0xFF06140A) else Color.White
     }
 
+    /** Normalise any "#RRGGBB" / "#AARRGGBB" to the storage form used on habits. */
+    fun storageHex(hex: String): String = HabitUtil.colorToHex(colorOf(hex))
+
     fun sameColor(hex: String?, accent: Accent): Boolean =
         colorOf(hex).toArgb() == accent.color.toArgb()
 }
@@ -98,4 +101,31 @@ fun Modifier.glow(
             radiusX = cr, radiusY = cr, paint = paint,
         )
     }
+}
+
+/**
+ * Stories (daily boost, reviews, wrapped) are always dark, full-bleed, with a
+ * per-slide radial tint over the background — the design's `SV` palette.
+ */
+object StoryPalette {
+    val text = Color(0xFFF2F7F4)
+    val sub = Color(0xFF9AACA8)
+    val ter = Color(0xFF5E716D)
+    val lime = Color(0xFFC2FF4D)
+    val sky = Color(0xFF3BA9FF)
+    val amber = Color(0xFFFFB23E)
+    val mint = Color(0xFF34E5A0)
+    val coral = Color(0xFFFF6F61)
+    val base = Color(0xFF070A0B)
+    val glass = Color(0xFF10171A).copy(alpha = 0.75f)
+    val track = Color.White.copy(alpha = 0.22f)
+    val dim = Color.White.copy(alpha = 0.07f)
+
+    // Radial tints behind slides.
+    val tintGreen = Color(0xFF24400F)
+    val tintDeepGreen = Color(0xFF1D3A10)
+    val tintTeal = Color(0xFF0B3A2A)
+    val tintBlue = Color(0xFF0B2A3A)
+    val tintAmber = Color(0xFF3A2600)
+    val tintRed = Color(0xFF3A1410)
 }

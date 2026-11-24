@@ -52,6 +52,42 @@ class SettingsRepositoryImpl @Inject constructor(
             )
         }
 
+    override val seenStories: Flow<Set<String>> =
+        dataStore.data.map { it[Keys.SeenStories] ?: emptySet() }
+
+    override val savedQuotes: Flow<Set<String>> =
+        dataStore.data.map { it[Keys.SavedQuotes] ?: emptySet() }
+
+    override val activePlans: Flow<Map<String, String>> =
+        dataStore.data.map { prefs ->
+            prefs[Keys.ActivePlans].orEmpty().mapNotNull { e ->
+                e.split("|").takeIf { it.size == 2 }?.let { it[0] to it[1] }
+            }.toMap()
+        }
+
+    override suspend fun setPlan(planId: String, startDate: String?) {
+        dataStore.edit { prefs ->
+            val others = prefs[Keys.ActivePlans].orEmpty().filterNot { it.startsWith("$planId|") }.toSet()
+            prefs[Keys.ActivePlans] = if (startDate == null) others else others + "$planId|$startDate"
+        }
+    }
+
+    override suspend fun markStorySeen(key: String) {
+        dataStore.edit { prefs ->
+            // Bound the set (old days/weeks are never shown again). Stored sets aren't
+            // ordered, so trim the *others* and always keep the key just added.
+            val others = (prefs[Keys.SeenStories].orEmpty() - key).toList().takeLast(59)
+            prefs[Keys.SeenStories] = others.toSet() + key
+        }
+    }
+
+    override suspend fun setQuoteSaved(quote: String, saved: Boolean) {
+        dataStore.edit { prefs ->
+            val cur = prefs[Keys.SavedQuotes].orEmpty()
+            prefs[Keys.SavedQuotes] = if (saved) cur + quote else cur - quote
+        }
+    }
+
     override suspend fun setThemePreference(value: ThemePreference) {
         dataStore.edit { it[Keys.Theme] = value.name }
     }
@@ -94,5 +130,8 @@ class SettingsRepositoryImpl @Inject constructor(
         val QuietEnabled = booleanPreferencesKey("quiet_hours_enabled")
         val QuietStart = stringPreferencesKey("quiet_hours_start")
         val QuietEnd = stringPreferencesKey("quiet_hours_end")
+        val SeenStories = stringSetPreferencesKey("seen_stories")
+        val SavedQuotes = stringSetPreferencesKey("saved_quotes")
+        val ActivePlans = stringSetPreferencesKey("active_plans")
     }
 }

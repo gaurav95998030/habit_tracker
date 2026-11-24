@@ -29,6 +29,7 @@ class BootReceiver : BroadcastReceiver() {
         val pendingResult = goAsync()
         CoroutineScope(Dispatchers.IO).launch {
             try {
+                scheduler.scheduleMissCheck()
                 // Master switch wins after reboot — if the user disabled reminders
                 // globally before powering off, don't silently re-arm everything.
                 if (!settingsRepository.notificationsEnabled.first()) return@launch

@@ -51,6 +51,8 @@ import io.github.gaurav95998030.habittracker.features.habits.HabitCatalog
 import io.github.gaurav95998030.habittracker.features.habits.HabitUtil
 import io.github.gaurav95998030.habittracker.features.habits.domain.HabitStats
 import io.github.gaurav95998030.habittracker.features.habits.domain.model.Habit
+import io.github.gaurav95998030.habittracker.features.motivation.domain.ReviewStats
+import io.github.gaurav95998030.habittracker.features.motivation.presentation.ComebackCard
 import io.github.gaurav95998030.habittracker.features.habits.presentation.components.HabitIconBadge
 import io.github.gaurav95998030.habittracker.features.habits.presentation.components.MonthCalendar
 import io.github.gaurav95998030.habittracker.features.habits.presentation.components.YearHeatmap
@@ -77,6 +79,7 @@ fun HabitDetailSheet(
     onEdit: () -> Unit,
     onDelete: () -> Unit,
     onSetActive: (Boolean) -> Unit,
+    onStartStreak: () -> Unit,
 ) {
     val c = AppTheme.colors
     val today = LocalDate.now()
@@ -86,6 +89,7 @@ fun HabitDetailSheet(
     val best = remember(completed) { maxOf(HabitUtil.maxStreak(completed), current) }
     var monthOffset by rememberSaveable(habit.id) { mutableIntStateOf(0) }
     val month = YearMonth.from(today).plusMonths(monthOffset.toLong())
+    val comeback = remember(habit.completedDates, habit.isActive, today) { ReviewStats.comeback(habit, today) }
 
     HfBottomSheet(onDismiss = onDismiss) {
         Column(Modifier.fillMaxWidth()) {
@@ -152,6 +156,15 @@ fun HabitDetailSheet(
                     .navigationBarsPadding()
                     .padding(start = 22.dp, end = 22.dp, bottom = 22.dp),
             ) {
+                if (comeback != null) {
+                    ComebackCard(
+                        comeback = comeback,
+                        color = color,
+                        doneToday = today in completed,
+                        onStartStreak = onStartStreak,
+                        modifier = Modifier.padding(bottom = 22.dp),
+                    )
+                }
                 Row(Modifier.fillMaxWidth().padding(bottom = 22.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     StatBlock(current, "Current", color, PhIcons.Fire, hero = true, modifier = Modifier.weight(1f))
                     StatBlock(best, "Best ever", c.textPrimary, PhIcons.Trophy, modifier = Modifier.weight(1f))

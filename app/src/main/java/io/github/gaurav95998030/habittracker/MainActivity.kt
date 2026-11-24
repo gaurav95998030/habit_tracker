@@ -26,6 +26,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 import io.github.gaurav95998030.habittracker.features.onboarding.presentation.OnboardingResult
+import io.github.gaurav95998030.habittracker.features.motivation.presentation.MotivationViewModel
 import io.github.gaurav95998030.habittracker.features.onboarding.presentation.OnboardingScreen
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -42,6 +43,7 @@ class MainActivity : ComponentActivity() {
 
     private val viewModel: HabitViewModel by viewModels()
     private val settingsViewModel: SettingsViewModel by viewModels()
+    private val motivationViewModel: MotivationViewModel by viewModels()
 
     // Android 13+ needs the POST_NOTIFICATIONS runtime grant before any reminder can
     // show. Without it the alarm fires but the notification is silently dropped, so we
@@ -90,6 +92,7 @@ class MainActivity : ComponentActivity() {
                         true -> MainScreen(
                             habitViewModel = viewModel,
                             settingsViewModel = settingsViewModel,
+                            motivationViewModel = motivationViewModel,
                             widgetPromoEligible = startedOnboarded == true,
                         )
                     }
@@ -129,6 +132,12 @@ class MainActivity : ComponentActivity() {
     private fun handleDeepLink(intent: Intent?) {
         if (intent == null) {
             Log.d("HabitDeepLink", "handleDeepLink: intent=null")
+            return
+        }
+        // "You missed … yesterday" → open the reason sheet.
+        if (intent.action == ReminderConstants.ACTION_OPEN_MISS_LOG) {
+            motivationViewModel.requestMissSheet()
+            intent.action = null
             return
         }
         // Try the explicit extra first, then fall back to the URI path. Some OEMs

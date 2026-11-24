@@ -78,6 +78,8 @@ fun SettingsScreen(
     val remindersOn by viewModel.notificationsEnabled.collectAsStateWithLifecycle()
     val userName by viewModel.userName.collectAsStateWithLifecycle()
     val quiet by viewModel.quietHours.collectAsStateWithLifecycle()
+    val savedQuotes by viewModel.savedQuotes.collectAsStateWithLifecycle()
+    var showQuotes by rememberSaveable { mutableStateOf(false) }
 
     var editingName by rememberSaveable { mutableStateOf(false) }
     var editingQuiet by rememberSaveable { mutableStateOf(false) }
@@ -131,6 +133,9 @@ fun SettingsScreen(
 
         SettingsGroup("About") {
             SettingsRow(PhIcons.Sparkle, "What's new", "Aurora redesign", onClick = { showWhatsNew = true }, first = true)
+            SettingsRow(PhIcons.BookmarkSimple, "Saved quotes",
+                if (savedQuotes.isEmpty()) "Bookmark quotes from your daily boost" else "${savedQuotes.size} saved",
+                onClick = { showQuotes = true })
             SettingsRow(PhIcons.ArrowCounterClockwise, "Replay onboarding", onClick = viewModel::replayOnboarding)
             SettingsRow(PhIcons.Info, "Version", "${BuildConfig.VERSION_NAME} (build ${BuildConfig.VERSION_CODE})", trailing = {})
         }
@@ -146,6 +151,9 @@ fun SettingsScreen(
     }
     if (editingQuiet) {
         QuietHoursSheet(initial = quiet, onDismiss = { editingQuiet = false }, onSave = { viewModel.onQuietHoursChanged(it); editingQuiet = false })
+    }
+    if (showQuotes) {
+        SavedQuotesSheet(quotes = savedQuotes, onRemove = { viewModel.setQuoteSaved(it, false) }, onDismiss = { showQuotes = false })
     }
     if (showWhatsNew) {
         AlertDialog(
@@ -167,6 +175,40 @@ fun SettingsScreen(
                 TextButton(onClick = { showWhatsNew = false }) { Text("Nice", color = c.primary, style = AppTheme.textStyles.labelLarge) }
             },
         )
+    }
+}
+
+@Composable
+private fun SavedQuotesSheet(quotes: Set<String>, onRemove: (String) -> Unit, onDismiss: () -> Unit) {
+    val c = AppTheme.colors
+    HfBottomSheet(onDismiss = onDismiss) {
+        Column(Modifier.fillMaxWidth().navigationBarsPadding().padding(start = 22.dp, end = 22.dp, top = 6.dp, bottom = 22.dp)) {
+            Text("Saved quotes", style = AppTheme.textStyles.titleLarge.copy(fontSize = 21.sp), color = c.textPrimary)
+            if (quotes.isEmpty()) {
+                Text("Tap Save on a daily-boost quote and it lands here.", style = AppTheme.textStyles.bodyMedium, color = c.textSecondary,
+                    modifier = Modifier.padding(top = 10.dp))
+            }
+            Column(
+                Modifier.padding(top = 16.dp).verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                quotes.sorted().forEach { q ->
+                    val shape = RoundedCornerShape(AppShapes.tile)
+                    Row(
+                        Modifier.fillMaxWidth().clip(shape).background(c.surface).border(1.dp, c.glassBorder, shape).padding(16.dp),
+                        verticalAlignment = Alignment.Top,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        PhIcon(PhIcons.Quotes, size = 20.dp, tint = c.primary, weight = PhWeight.Fill)
+                        Text(q, style = AppTheme.textStyles.bodyMedium.copy(lineHeight = 21.sp), color = c.textPrimary, modifier = Modifier.weight(1f))
+                        PhIcon(
+                            PhIcons.X, size = 16.dp, tint = c.textTertiary, weight = PhWeight.Bold,
+                            modifier = Modifier.clip(CircleShape).clickable(onClickLabel = "Remove quote") { onRemove(q) },
+                        )
+                    }
+                }
+            }
+        }
     }
 }
 

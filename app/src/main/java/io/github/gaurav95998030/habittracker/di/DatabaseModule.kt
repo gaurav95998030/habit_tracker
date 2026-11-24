@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.room.Room
 import io.github.gaurav95998030.habittracker.features.habits.data.local.HabitDao
 import io.github.gaurav95998030.habittracker.features.habits.data.local.HabitDatabase
+import io.github.gaurav95998030.habittracker.features.motivation.data.local.MotivationDao
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -25,9 +26,13 @@ object DatabaseModule {
             HabitDatabase::class.java,
             "habit_database"
         )
-            .addMigrations(HabitDatabase.MIGRATION_1_2, HabitDatabase.MIGRATION_2_3)
+            .addMigrations(HabitDatabase.MIGRATION_1_2, HabitDatabase.MIGRATION_2_3, HabitDatabase.MIGRATION_3_4)
             .build()
     }
+
+    @Provides
+    @Singleton
+    fun provideMotivationDao(database: HabitDatabase): MotivationDao = database.motivationDao()
 
     @Provides
     @Singleton

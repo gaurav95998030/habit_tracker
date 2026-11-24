@@ -25,6 +25,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import io.github.gaurav95998030.habittracker.features.settings.domain.repository.SettingsRepository
+import io.github.gaurav95998030.habittracker.features.motivation.domain.MotivationInsights
+import io.github.gaurav95998030.habittracker.features.motivation.domain.repository.MotivationRepository
 import java.util.Calendar
 import java.time.LocalDate
 import javax.inject.Inject
@@ -35,6 +37,7 @@ class HabitReminderReceiver : BroadcastReceiver() {
     @Inject lateinit var scheduler: HabitReminderScheduler
     @Inject lateinit var repository: HabitRepository
     @Inject lateinit var settingsRepository: SettingsRepository
+    @Inject lateinit var motivationRepository: MotivationRepository
 
     override fun onReceive(context: Context, intent: Intent) {
         when (intent.action) {
@@ -42,6 +45,7 @@ class HabitReminderReceiver : BroadcastReceiver() {
             ReminderConstants.ACTION_MARK_DONE -> handleMarkDone(context, intent)
             ReminderConstants.ACTION_SNOOZE -> handleSnooze(context, intent)
             ReminderConstants.ACTION_FIRE_SNOOZED -> handleFire(context, intent, rearmDaily = false)
+            ReminderConstants.ACTION_MISS_CHECK -> handleMissCheck(context)
         }
     }
 
@@ -136,6 +140,63 @@ class HabitReminderReceiver : BroadcastReceiver() {
                 pending.finish()
             }
         }
+    }
+
+    /**
+     * Morning check: if any active habit was missed yesterday with no reason logged,
+     * post one notification ("You missed X yesterday") that opens the reason sheet.
+     * Always re-arms tomorrow's check.
+     */
+    private fun handleMissCheck(context: Context) {
+        val pending = goAsync()
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return@launch
+                if (!settingsRepository.notificationsEnabled.first()) return@launch
+                val now = Calendar.getInstance()
+                val quiet = settingsRepository.quietHours.first()
+                    .contains(now.get(Calendar.HOUR_OF_DAY) * 60 + now.get(Calendar.MINUTE))
+                if (quiet) return@launch
+                val yesterday = LocalDate.now().minusDays(1).toString()
+                val missed = MotivationInsights.missedYesterday(
+                    repository.getHabits(),
+                    motivationRepository.missLogsOn(yesterday),
+                )
+                if (missed.isNotEmpty()) showMissNotification(context, missed)
+            } catch (e: Exception) {
+                android.util.Log.e("HabitReminder", "miss check failed", e)
+            } finally {
+                scheduler.scheduleMissCheck()
+                pending.finish()
+            }
+        }
+    }
+
+    private fun showMissNotification(context: Context, missed: List<Habit>) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
+        ) return
+        scheduler.ensureNotificationChannel()
+        val open = Intent(context, MainActivity::class.java).apply {
+            action = ReminderConstants.ACTION_OPEN_MISS_LOG
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+        }
+        val pi = PendingIntent.getActivity(
+            context, ReminderConstants.MISS_NOTIFICATION_ID, open,
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+        )
+        val title = if (missed.size == 1) "You missed ${missed[0].name} yesterday" else "You missed ${missed.size} habits yesterday"
+        val body = if (missed.size == 1) "What got in the way? One tap is enough." else "What got in the way? Log a reason to spot patterns."
+        val builder = NotificationCompat.Builder(context, ReminderConstants.CHANNEL_ID)
+            .setSmallIcon(R.drawable.ic_notification_reminder)
+            .setContentTitle(title)
+            .setContentText(body)
+            .setContentIntent(pi)
+            .setAutoCancel(true)
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .setCategory(NotificationCompat.CATEGORY_REMINDER)
+        parseAccentColor(missed[0].color)?.let { builder.color = it }
+        NotificationManagerCompat.from(context).notify(ReminderConstants.MISS_NOTIFICATION_ID, builder.build())
     }
 
     /** "Snooze 1h": dismiss now, re-post once in an hour via a one-shot alarm. */

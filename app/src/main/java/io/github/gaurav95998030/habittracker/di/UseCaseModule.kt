@@ -12,6 +12,15 @@ import dagger.hilt.InstallIn
 import dagger.hilt.android.components.ViewModelComponent
 import dagger.hilt.android.scopes.ViewModelScoped
 
+import io.github.gaurav95998030.habittracker.features.motivation.domain.repository.MotivationRepository
+import io.github.gaurav95998030.habittracker.features.motivation.domain.usecases.ObserveMissLogsUseCase
+import io.github.gaurav95998030.habittracker.features.motivation.domain.usecases.LogMissUseCase
+import io.github.gaurav95998030.habittracker.features.motivation.domain.usecases.ObserveEnergyUseCase
+import io.github.gaurav95998030.habittracker.features.motivation.domain.usecases.SetEnergyUseCase
+import io.github.gaurav95998030.habittracker.features.motivation.domain.usecases.ObserveStacksUseCase
+import io.github.gaurav95998030.habittracker.features.motivation.domain.usecases.SaveStackUseCase
+import io.github.gaurav95998030.habittracker.features.motivation.domain.usecases.DeleteStackUseCase
+
 @Module
 @InstallIn(ViewModelComponent::class)
 object UseCaseModule {
@@ -55,5 +64,32 @@ object UseCaseModule {
     ): DeleteHabitUseCase {
         return DeleteHabitUseCase(habitRepository)
     }
-}
 
+    @Provides
+    @ViewModelScoped
+    fun provideObserveMissLogsUseCase(repo: MotivationRepository): ObserveMissLogsUseCase = ObserveMissLogsUseCase(repo)
+
+    @Provides
+    @ViewModelScoped
+    fun provideLogMissUseCase(repo: MotivationRepository): LogMissUseCase = LogMissUseCase(repo)
+
+    @Provides
+    @ViewModelScoped
+    fun provideObserveEnergyUseCase(repo: MotivationRepository): ObserveEnergyUseCase = ObserveEnergyUseCase(repo)
+
+    @Provides
+    @ViewModelScoped
+    fun provideSetEnergyUseCase(repo: MotivationRepository): SetEnergyUseCase = SetEnergyUseCase(repo)
+
+    @Provides
+    @ViewModelScoped
+    fun provideObserveStacksUseCase(repo: MotivationRepository): ObserveStacksUseCase = ObserveStacksUseCase(repo)
+
+    @Provides
+    @ViewModelScoped
+    fun provideSaveStackUseCase(repo: MotivationRepository): SaveStackUseCase = SaveStackUseCase(repo)
+
+    @Provides
+    @ViewModelScoped
+    fun provideDeleteStackUseCase(repo: MotivationRepository): DeleteStackUseCase = DeleteStackUseCase(repo)
+}

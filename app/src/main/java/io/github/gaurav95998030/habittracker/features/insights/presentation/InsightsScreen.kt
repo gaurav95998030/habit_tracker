@@ -54,6 +54,19 @@ import io.github.gaurav95998030.habittracker.ui.theme.AppTheme
 import io.github.gaurav95998030.habittracker.ui.theme.PhIcons
 import io.github.gaurav95998030.habittracker.ui.theme.glow
 import java.time.DayOfWeek
+import java.time.LocalDate
+import io.github.gaurav95998030.habittracker.features.motivation.domain.model.EnergyCheckin
+import io.github.gaurav95998030.habittracker.features.motivation.domain.model.EnergyLevel
+import io.github.gaurav95998030.habittracker.features.motivation.domain.model.MissLog
+import io.github.gaurav95998030.habittracker.features.motivation.presentation.EnergyPanel
+import io.github.gaurav95998030.habittracker.features.motivation.presentation.MissSummaryPanel
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import io.github.gaurav95998030.habittracker.commons.ui.accentWash
+import io.github.gaurav95998030.habittracker.features.motivation.domain.ReviewStats
+import io.github.gaurav95998030.habittracker.features.motivation.presentation.StoryItem
+import io.github.gaurav95998030.habittracker.features.motivation.presentation.StoryKind
+import io.github.gaurav95998030.habittracker.ui.theme.StoryPalette
 import java.time.format.TextStyle
 import java.util.Locale
 
@@ -68,6 +81,12 @@ private val WEEK = listOf(
 @Composable
 fun InsightsScreen(
     viewModel: HabitViewModel,
+    onOpenYearReview: (StoryItem) -> Unit,
+    missLogs: List<MissLog>,
+    energy: List<EnergyCheckin>,
+    onSetEnergy: (EnergyLevel?) -> Unit,
+    onOpenMisses: () -> Unit,
+    onOpenCheckIn: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val c = AppTheme.colors
@@ -98,6 +117,14 @@ fun InsightsScreen(
             StatCard(PhIcons.TrendUp, "Avg / week", "${state.avgWeeklyRatePercent}%", c.primary, Modifier.weight(1f))
             StatCard(PhIcons.CheckFat, "Completions", state.totalCompletions.toString(), c.secondary, Modifier.weight(1f))
         }
+
+        YearReviewCard(onClick = {
+            val y = LocalDate.now().year
+            onOpenYearReview(StoryItem(StoryKind.Year, ReviewStats.yearKey(y), "$y Wrapped", 4, StoryPalette.lime, PhIcons.Trophy, year = y))
+        })
+
+        EnergyPanel(energy, onSetEnergy, onOpenCheckIn)
+        MissSummaryPanel(habits, missLogs, onOpenMisses)
 
         Panel("Completion rate", "Last 8 weeks") {
             WeekBars(state.weekBuckets.map { BarDatum(it.label, it.percent.toFloat()) })
@@ -193,6 +220,34 @@ private fun StreakRow(rank: Int, entry: StreakEntry, fraction: Float) {
             Text(entry.bestStreak.toString(), style = AppTheme.textStyles.titleMedium, fontWeight = FontWeight.SemiBold, color = c.textPrimary)
             Text("best", style = AppTheme.textStyles.caption.copy(fontSize = 10.sp), color = c.textTertiary)
         }
+    }
+}
+
+@RequiresApi(Build.VERSION_CODES.O)
+@Composable
+private fun YearReviewCard(onClick: () -> Unit) {
+    val c = AppTheme.colors
+    val shape = RoundedCornerShape(24.dp)
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .glow(c.primary.copy(alpha = 0.08f), 30.dp, 24.dp, enabled = c.isDark)
+            .clip(shape)
+            .background(accentWash(c.primary, 0.12f))
+            .border(1.dp, if (c.isDark) c.primary.copy(alpha = 0.27f) else c.glassBorder, shape)
+            .clickable(onClickLabel = "Play your year in review", onClick = onClick)
+            .padding(16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(Modifier.size(46.dp).clip(RoundedCornerShape(14.dp)).background(c.primary.copy(alpha = 0.13f)), contentAlignment = Alignment.Center) {
+            PhIcon(PhIcons.Trophy, size = 24.dp, tint = c.primary, weight = PhWeight.Fill)
+        }
+        HSpace(14.dp)
+        Column(Modifier.weight(1f)) {
+            Text("Your ${LocalDate.now().year} so far", style = AppTheme.textStyles.titleMedium.copy(fontSize = 16.sp), fontWeight = FontWeight.SemiBold, color = c.textPrimary)
+            Text("Year in review · tap to play", style = AppTheme.textStyles.bodySmall, color = c.textSecondary, modifier = Modifier.padding(top = 2.dp))
+        }
+        PhIcon(PhIcons.CaretRight, size = 18.dp, tint = c.textTertiary)
     }
 }
 

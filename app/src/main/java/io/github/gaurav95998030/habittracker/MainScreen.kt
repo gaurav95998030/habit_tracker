@@ -11,6 +11,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -21,6 +22,10 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import io.github.gaurav95998030.habittracker.features.habits.presentation.viewmodel.HabitViewModel
 import io.github.gaurav95998030.habittracker.features.settings.presentation.SettingsViewModel
+import io.github.gaurav95998030.habittracker.features.motivation.presentation.MotivationStory
+import io.github.gaurav95998030.habittracker.features.motivation.presentation.MissLogSheet
+import io.github.gaurav95998030.habittracker.features.motivation.presentation.MotivationViewModel
+import io.github.gaurav95998030.habittracker.features.motivation.presentation.StoryItem
 import io.github.gaurav95998030.habittracker.features.widget.presentation.WidgetPromoSheet
 import io.github.gaurav95998030.habittracker.navigation.AppBottomBar
 import io.github.gaurav95998030.habittracker.navigation.AppNavHost
@@ -45,6 +50,7 @@ import io.github.gaurav95998030.habittracker.ui.theme.AppTheme
 fun MainScreen(
     habitViewModel: HabitViewModel,
     settingsViewModel: SettingsViewModel,
+    motivationViewModel: MotivationViewModel,
     widgetPromoEligible: Boolean,
 ) {
     val navController = rememberNavController()
@@ -60,6 +66,11 @@ fun MainScreen(
     val habitState by habitViewModel.uiState.collectAsStateWithLifecycle()
     val promoSeen by settingsViewModel.widgetPromoSeen.collectAsStateWithLifecycle()
     var promoRequested by rememberSaveable { mutableStateOf(false) }
+    var openStory by remember { mutableStateOf<StoryItem?>(null) }
+    val userName by settingsViewModel.userName.collectAsStateWithLifecycle()
+    val savedQuotes by settingsViewModel.savedQuotes.collectAsStateWithLifecycle()
+    val missSheetRequested by motivationViewModel.missSheetRequested.collectAsStateWithLifecycle()
+    val missLogs by motivationViewModel.missLogs.collectAsStateWithLifecycle()
     val habits = habitState.habits.orEmpty()
     val autoPromo = widgetPromoEligible && !promoSeen && !habitState.isLoading &&
         habits.isNotEmpty() && currentTab == TopLevelDestination.Home && habitState.pendingDetailHabitId == null
@@ -82,6 +93,9 @@ fun MainScreen(
                 settingsViewModel = settingsViewModel,
                 onSelectTab = selectTab,
                 onOpenWidgetPromo = { promoRequested = true },
+                onOpenStory = { openStory = it },
+                motivationViewModel = motivationViewModel,
+                onOpenMissSheet = motivationViewModel::requestMissSheet,
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(paddingValues),
@@ -89,7 +103,33 @@ fun MainScreen(
         }
     }
 
-    if (promoRequested || autoPromo) {
+    // "What got in the way?" — from the morning notification or Insights.
+    if (missSheetRequested && !habitState.isLoading) {
+        MissLogSheet(
+            habits = habits,
+            logs = missLogs,
+            onLog = motivationViewModel::logMiss,
+            onDismiss = motivationViewModel::consumeMissSheet,
+        )
+    }
+
+    // Full-screen story overlay (above the bar and every tab). Closing marks it seen.
+    openStory?.let { story ->
+        MotivationStory(
+            kind = story.kind,
+            habits = habits,
+            userName = userName,
+            savedQuotes = savedQuotes,
+            onToggleQuote = settingsViewModel::setQuoteSaved,
+            year = story.year ?: java.time.LocalDate.now().year,
+            onClose = {
+                settingsViewModel.markStorySeen(story.key)
+                openStory = null
+            },
+        )
+    }
+
+    if (openStory == null && !missSheetRequested && (promoRequested || autoPromo)) {
         WidgetPromoSheet(
             habits = habits,
             onDismiss = {
