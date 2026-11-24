@@ -30,6 +30,8 @@ class BootReceiver : BroadcastReceiver() {
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 scheduler.scheduleMissCheck()
+                io.github.gaurav95998030.habittracker.features.widget.TodayLockScreen.scheduleMidnightRefresh(context)
+                io.github.gaurav95998030.habittracker.features.widget.HabitWidgetProvider.refresh(context)
                 // Master switch wins after reboot — if the user disabled reminders
                 // globally before powering off, don't silently re-arm everything.
                 if (!settingsRepository.notificationsEnabled.first()) return@launch

@@ -62,6 +62,7 @@ fun AppNavHost(
     onSelectTab: (TopLevelDestination) -> Unit,
     onOpenWidgetPromo: () -> Unit,
     onOpenStory: (StoryItem) -> Unit,
+    onRequestLockScreen: () -> Unit,
     motivationViewModel: MotivationViewModel,
     onOpenMissSheet: () -> Unit,
     modifier: Modifier = Modifier,
@@ -116,6 +117,7 @@ fun AppNavHost(
                 onOpenNotifications = { navController.navigate(NOTIFICATIONS_ROUTE) },
                 onOpenWidget = onOpenWidgetPromo,
                 onOpenPrivacy = { navController.navigate(PRIVACY_ROUTE) },
+                onRequestLockScreen = onRequestLockScreen,
             )
         }
         composable(NOTIFICATIONS_ROUTE) {

@@ -65,6 +65,27 @@ class SettingsRepositoryImpl @Inject constructor(
         dataStore.edit { it[Keys.DiagnosticsEnabled] = enabled }
     }
 
+    override val lockScreenEnabled: Flow<Boolean> =
+        dataStore.data.map { it[Keys.LockScreenEnabled] ?: false }
+
+    override val lockScreenPrompted: Flow<Boolean> =
+        dataStore.data.map { it[Keys.LockScreenPrompted] ?: false }
+
+    override val lockScreenDismissedOn: Flow<String?> =
+        dataStore.data.map { it[Keys.LockScreenDismissedOn] }
+
+    override suspend fun setLockScreenEnabled(enabled: Boolean) {
+        dataStore.edit { it[Keys.LockScreenEnabled] = enabled }
+    }
+
+    override suspend fun setLockScreenPrompted(prompted: Boolean) {
+        dataStore.edit { it[Keys.LockScreenPrompted] = prompted }
+    }
+
+    override suspend fun setLockScreenDismissedOn(date: String?) {
+        dataStore.edit { if (date == null) it.remove(Keys.LockScreenDismissedOn) else it[Keys.LockScreenDismissedOn] = date }
+    }
+
     override val activePlans: Flow<Map<String, String>> =
         dataStore.data.map { prefs ->
             prefs[Keys.ActivePlans].orEmpty().mapNotNull { e ->
@@ -141,5 +162,8 @@ class SettingsRepositoryImpl @Inject constructor(
         val SavedQuotes = stringSetPreferencesKey("saved_quotes")
         val ActivePlans = stringSetPreferencesKey("active_plans")
         val DiagnosticsEnabled = booleanPreferencesKey("diagnostics_enabled")
+        val LockScreenEnabled = booleanPreferencesKey("lockscreen_enabled")
+        val LockScreenPrompted = booleanPreferencesKey("lockscreen_prompted")
+        val LockScreenDismissedOn = stringPreferencesKey("lockscreen_dismissed_on")
     }
 }

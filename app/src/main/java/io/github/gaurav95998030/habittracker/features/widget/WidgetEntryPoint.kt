@@ -14,4 +14,5 @@ import io.github.gaurav95998030.habittracker.features.habits.domain.repository.H
 @InstallIn(SingletonComponent::class)
 interface WidgetEntryPoint {
     fun habitRepository(): HabitRepository
+    fun settingsRepository(): io.github.gaurav95998030.habittracker.features.settings.domain.repository.SettingsRepository
 }

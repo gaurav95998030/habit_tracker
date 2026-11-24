@@ -12,6 +12,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import android.content.Context
 import dagger.hilt.android.qualifiers.ApplicationContext
 import io.github.gaurav95998030.habittracker.commons.CrashReporter
+import io.github.gaurav95998030.habittracker.features.widget.HabitWidgetProvider
+import io.github.gaurav95998030.habittracker.features.widget.TodayLockScreen
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -69,6 +71,35 @@ class SettingsViewModel @Inject constructor(
             settingsRepository.setDiagnosticsEnabled(enabled)
             CrashReporter.setCollectionEnabled(appContext, enabled)
         }
+    }
+
+    val lockScreenEnabled: StateFlow<Boolean> =
+        settingsRepository.lockScreenEnabled.stateIn(viewModelScope, SharingStarted.Eagerly, false)
+
+    /** Starts `true` so the one-time prompt can't flash before DataStore has loaded. */
+    val lockScreenPrompted: StateFlow<Boolean> =
+        settingsRepository.lockScreenPrompted.stateIn(viewModelScope, SharingStarted.Eagerly, true)
+
+    /** User consented in the lock-screen sheet (permission already granted). */
+    fun enableLockScreen() {
+        viewModelScope.launch {
+            settingsRepository.setLockScreenPrompted(true)
+            settingsRepository.setLockScreenDismissedOn(null)
+            settingsRepository.setLockScreenEnabled(true)
+            HabitWidgetProvider.refresh(appContext)
+        }
+    }
+
+    fun disableLockScreen() {
+        viewModelScope.launch {
+            settingsRepository.setLockScreenEnabled(false)
+            TodayLockScreen.cancel(appContext)
+        }
+    }
+
+    /** "Not now" / dismissed the one-time prompt — don't ask again (Settings still offers it). */
+    fun declineLockScreen() {
+        viewModelScope.launch { settingsRepository.setLockScreenPrompted(true) }
     }
 
     fun markStorySeen(key: String) {

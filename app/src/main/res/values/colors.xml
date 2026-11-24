@@ -9,4 +9,18 @@
     <color name="white">#FFFFFFFF</color>
     <!-- System splash + window background (behind Compose before first frame). -->
     <color name="splash_bg">#F4F7F2</color>
+    <!-- Home-screen widget: always the dark Aurora card, regardless of system theme. -->
+    <color name="widget_bg">#EB0D1412</color>
+    <color name="widget_border">#29C2FF4D</color>
+    <color name="widget_text">#F2F7F4</color>
+    <color name="widget_text_secondary">#9AACA8</color>
+    <color name="widget_text_tertiary">#5E716D</color>
+    <color name="widget_primary">#C2FF4D</color>
+    <color name="widget_track">#0DFFFFFF</color>
+    <!-- Lock-screen "Today" card text on the system notification surface (night in values-night). -->
+    <color name="notif_text">#0C1110</color>
+    <color name="notif_text_secondary">#4C5A56</color>
+    <color name="notif_text_tertiary">#849490</color>
+    <color name="notif_primary">#2BAA4A</color>
+    <color name="notif_track">#0F0C1110</color>
 </resources>

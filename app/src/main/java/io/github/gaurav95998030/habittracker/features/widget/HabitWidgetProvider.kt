@@ -29,11 +29,40 @@ class HabitWidgetProvider : AppWidgetProvider() {
         appWidgetManager: AppWidgetManager,
         appWidgetIds: IntArray,
     ) {
-        appWidgetIds.forEach { id -> renderWidget(context, appWidgetManager, id) }
+        // Header count/progress need a Room read, so render off the main thread.
+        val pending = goAsync()
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val summary = TodayCard.summary(loadHabits(context))
+                appWidgetIds.forEach { id -> renderWidget(context, appWidgetManager, id, summary) }
+            } finally {
+                pending.finish()
+            }
+        }
     }
 
     override fun onReceive(context: Context, intent: Intent) {
         super.onReceive(context, intent)
+        when (intent.action) {
+            TodayLockScreen.ACTION_DISMISSED -> {
+                // User swiped the lock-screen card away: respect it until tomorrow.
+                val pending = goAsync()
+                CoroutineScope(Dispatchers.IO).launch {
+                    try {
+                        EntryPointAccessors.fromApplication(context.applicationContext, WidgetEntryPoint::class.java)
+                            .settingsRepository().setLockScreenDismissedOn(LocalDate.now().toString())
+                    } finally {
+                        pending.finish()
+                    }
+                }
+                return
+            }
+            TodayLockScreen.ACTION_DAY_ROLLOVER -> {
+                refresh(context)
+                TodayLockScreen.scheduleMidnightRefresh(context)
+                return
+            }
+        }
         if (intent.action == ACTION_WIDGET_TOGGLE) {
             val habitId = intent.getStringExtra(ReminderConstants.EXTRA_HABIT_ID) ?: return
             val pending = goAsync()
@@ -52,8 +81,13 @@ class HabitWidgetProvider : AppWidgetProvider() {
         context: Context,
         appWidgetManager: AppWidgetManager,
         appWidgetId: Int,
+        summary: TodaySummary,
     ) {
         val views = RemoteViews(context.packageName, R.layout.widget_habits)
+
+        // "2/3 today" + lime→mint progress, exactly as the design's header.
+        views.setTextViewText(R.id.widget_count, "${summary.done}/${summary.total}")
+        views.setProgressBar(R.id.widget_progress, 100, summary.percent, false)
 
         // Header tap opens the app.
         val openApp = context.packageManager.getLaunchIntentForPackage(context.packageName)
@@ -92,6 +126,12 @@ class HabitWidgetProvider : AppWidgetProvider() {
         appWidgetManager.notifyAppWidgetViewDataChanged(appWidgetId, R.id.widget_list)
     }
 
+    private suspend fun loadHabits(context: Context) =
+        runCatching {
+            EntryPointAccessors.fromApplication(context.applicationContext, WidgetEntryPoint::class.java)
+                .habitRepository().getHabits()
+        }.getOrDefault(emptyList())
+
     private suspend fun toggleToday(context: Context, habitId: String) {
         val repository = EntryPointAccessors
             .fromApplication(context.applicationContext, WidgetEntryPoint::class.java)
@@ -111,8 +151,12 @@ class HabitWidgetProvider : AppWidgetProvider() {
         const val ACTION_WIDGET_TOGGLE =
             "io.github.gaurav95998030.habittracker.ACTION_WIDGET_TOGGLE"
 
-        /** Re-render every placed widget and reload its list — call after data changes. */
+        /**
+         * Re-render every placed widget and the lock-screen card — call after any habit
+         * change (the app, notification actions, the widget itself, midnight rollover).
+         */
         fun refresh(context: Context) {
+            TodayLockScreen.update(context)
             val manager = AppWidgetManager.getInstance(context) ?: return
             val ids = manager.getAppWidgetIds(
                 ComponentName(context, HabitWidgetProvider::class.java)

@@ -27,6 +27,7 @@ import io.github.gaurav95998030.habittracker.features.motivation.presentation.Mi
 import io.github.gaurav95998030.habittracker.features.motivation.presentation.MotivationViewModel
 import io.github.gaurav95998030.habittracker.features.motivation.presentation.StoryItem
 import io.github.gaurav95998030.habittracker.features.widget.presentation.WidgetPromoSheet
+import io.github.gaurav95998030.habittracker.features.widget.presentation.LockScreenConsentSheet
 import io.github.gaurav95998030.habittracker.navigation.AppBottomBar
 import io.github.gaurav95998030.habittracker.navigation.AppNavHost
 import io.github.gaurav95998030.habittracker.navigation.TopLevelDestination
@@ -67,6 +68,9 @@ fun MainScreen(
     val promoSeen by settingsViewModel.widgetPromoSeen.collectAsStateWithLifecycle()
     var promoRequested by rememberSaveable { mutableStateOf(false) }
     var openStory by remember { mutableStateOf<StoryItem?>(null) }
+    var lockConsentRequested by rememberSaveable { mutableStateOf(false) }
+    val lockPrompted by settingsViewModel.lockScreenPrompted.collectAsStateWithLifecycle()
+    val lockEnabled by settingsViewModel.lockScreenEnabled.collectAsStateWithLifecycle()
     val userName by settingsViewModel.userName.collectAsStateWithLifecycle()
     val savedQuotes by settingsViewModel.savedQuotes.collectAsStateWithLifecycle()
     val missSheetRequested by motivationViewModel.missSheetRequested.collectAsStateWithLifecycle()
@@ -94,6 +98,7 @@ fun MainScreen(
                 onSelectTab = selectTab,
                 onOpenWidgetPromo = { promoRequested = true },
                 onOpenStory = { openStory = it },
+                onRequestLockScreen = { lockConsentRequested = true },
                 motivationViewModel = motivationViewModel,
                 onOpenMissSheet = motivationViewModel::requestMissSheet,
                 modifier = Modifier
@@ -129,7 +134,20 @@ fun MainScreen(
         )
     }
 
-    if (openStory == null && !missSheetRequested && (promoRequested || autoPromo)) {
+    // Lock-screen card consent: once automatically (on a later launch than the widget
+    // nudge, when nothing else is open), and whenever Settings' switch is turned on.
+    val promoShowing = openStory == null && !missSheetRequested && (promoRequested || autoPromo)
+    val autoLockPrompt = widgetPromoEligible && promoSeen && !lockPrompted && !lockEnabled &&
+        habits.isNotEmpty() && currentTab == TopLevelDestination.Home && openStory == null && !missSheetRequested && !promoShowing
+    if (lockConsentRequested || autoLockPrompt) {
+        LockScreenConsentSheet(
+            habits = habits,
+            onAllow = { lockConsentRequested = false; settingsViewModel.enableLockScreen() },
+            onDecline = { lockConsentRequested = false; settingsViewModel.declineLockScreen() },
+        )
+    }
+
+    if (promoShowing) {
         WidgetPromoSheet(
             habits = habits,
             onDismiss = {

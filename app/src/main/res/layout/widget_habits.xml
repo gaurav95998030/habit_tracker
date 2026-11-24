@@ -1,11 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Glowstreak "today" widget — matches the design's WidgetPreview: logo + count header,
+     lime→mint progress, then one row per active habit. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/widget_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@drawable/widget_bg"
     android:orientation="vertical"
-    android:padding="18dp">
+    android:padding="16dp">
 
     <LinearLayout
         android:id="@+id/widget_header"
@@ -13,42 +15,65 @@
         android:layout_height="wrap_content"
         android:gravity="center_vertical"
         android:orientation="horizontal"
-        android:paddingBottom="12dp">
+        android:paddingBottom="14dp">
 
-        <ImageView
-            android:layout_width="9dp"
-            android:layout_height="9dp"
-            android:src="@drawable/widget_dot"
-            android:tint="#CDF564"
-            android:contentDescription="@null"
-            tools:ignore="UseAppTint" />
+        <FrameLayout
+            android:layout_width="22dp"
+            android:layout_height="22dp">
+            <ImageView
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:src="@drawable/widget_logo_bg"
+                android:contentDescription="@null" />
+            <ImageView
+                android:layout_width="13dp"
+                android:layout_height="13dp"
+                android:layout_gravity="center"
+                android:src="@drawable/ic_bolt"
+                android:contentDescription="@null" />
+        </FrameLayout>
 
         <TextView
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:layout_marginStart="10dp"
+            android:layout_marginStart="9dp"
+            android:fontFamily="sans-serif-medium"
+            android:textStyle="bold"
+            android:maxLines="1"
             android:text="Glowstreak"
-            android:textColor="#F2F2F2"
-            android:textSize="16sp"
-            android:textStyle="bold" />
+            android:textColor="@color/widget_text"
+            android:textSize="14sp" />
+
+        <TextView
+            android:id="@+id/widget_count"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:fontFamily="sans-serif-medium"
+            android:text="0/0"
+            android:textColor="@color/widget_primary"
+            android:textSize="12sp" />
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_marginStart="4dp"
+            android:fontFamily="sans-serif"
             android:text="today"
-            android:textColor="#8A8A8A"
-            android:textSize="13sp" />
+            android:textColor="@color/widget_text_tertiary"
+            android:textSize="12sp" />
     </LinearLayout>
 
-    <!-- Divider. Must be an ImageView, not a plain <View>: RemoteViews only permits a
-         whitelisted set of view classes, and android.view.View is not one of them. -->
-    <ImageView
+    <ProgressBar
+        android:id="@+id/widget_progress"
+        style="?android:attr/progressBarStyleHorizontal"
         android:layout_width="match_parent"
-        android:layout_height="1dp"
-        android:layout_marginBottom="4dp"
-        android:background="#1C1C1C"
-        android:contentDescription="@null" />
+        android:layout_height="5dp"
+        android:layout_marginBottom="14dp"
+        android:indeterminate="false"
+        android:max="100"
+        android:progress="0"
+        android:progressDrawable="@drawable/widget_progress" />
 
     <FrameLayout
         android:layout_width="match_parent"
@@ -59,17 +84,19 @@
             android:id="@+id/widget_list"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:divider="@null"
-            android:dividerHeight="0dp"
+            android:divider="@android:color/transparent"
+            android:dividerHeight="11dp"
+            android:listSelector="@android:color/transparent"
             android:scrollbars="none" />
 
         <TextView
             android:id="@+id/widget_empty"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
+            android:fontFamily="sans-serif"
             android:gravity="center"
-            android:text="No habits yet"
-            android:textColor="#6F6F6F"
-            android:textSize="14sp" />
+            android:text="Your habits will show up here."
+            android:textColor="@color/widget_text_tertiary"
+            android:textSize="12sp" />
     </FrameLayout>
 </LinearLayout>

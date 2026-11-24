@@ -44,6 +44,15 @@ interface SettingsRepository {
     /** Opt-in for anonymous usage analytics, crash reports and performance data (default on). */
     val diagnosticsEnabled: Flow<Boolean>
 
+    /** "Today" card on the lock screen. Off until the user explicitly consents. */
+    val lockScreenEnabled: Flow<Boolean>
+
+    /** Whether the one-time lock-screen consent sheet has been shown. */
+    val lockScreenPrompted: Flow<Boolean>
+
+    /** "yyyy-MM-dd" the user swiped the card away; it stays hidden for the rest of that day. */
+    val lockScreenDismissedOn: Flow<String?>
+
     suspend fun setThemePreference(value: ThemePreference)
     suspend fun setNotificationsEnabled(enabled: Boolean)
     suspend fun setUserName(name: String)
@@ -56,4 +65,7 @@ interface SettingsRepository {
     /** Start (non-null [startDate]) or end (null) a starter plan. */
     suspend fun setPlan(planId: String, startDate: String?)
     suspend fun setDiagnosticsEnabled(enabled: Boolean)
+    suspend fun setLockScreenEnabled(enabled: Boolean)
+    suspend fun setLockScreenPrompted(prompted: Boolean)
+    suspend fun setLockScreenDismissedOn(date: String?)
 }

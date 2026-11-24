@@ -72,6 +72,7 @@ fun SettingsScreen(
     onOpenNotifications: () -> Unit,
     onOpenWidget: () -> Unit,
     onOpenPrivacy: () -> Unit,
+    onRequestLockScreen: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val c = AppTheme.colors
@@ -81,6 +82,9 @@ fun SettingsScreen(
     val quiet by viewModel.quietHours.collectAsStateWithLifecycle()
     val savedQuotes by viewModel.savedQuotes.collectAsStateWithLifecycle()
     val diagnostics by viewModel.diagnosticsEnabled.collectAsStateWithLifecycle()
+    val lockScreen by viewModel.lockScreenEnabled.collectAsStateWithLifecycle()
+    // Turning it on always goes through the consent sheet; turning it off is immediate.
+    val setLockScreen: (Boolean) -> Unit = { on -> if (on) onRequestLockScreen() else viewModel.disableLockScreen() }
     var showQuotes by rememberSaveable { mutableStateOf(false) }
 
     var editingName by rememberSaveable { mutableStateOf(false) }
@@ -137,6 +141,9 @@ fun SettingsScreen(
             SettingsRow(PhIcons.ChartLineUp, "Share usage & crash data", "Anonymous analytics, crash reports and performance",
                 trailing = { HfToggle(diagnostics, viewModel::onDiagnosticsChanged) },
                 onClick = { viewModel.onDiagnosticsChanged(!diagnostics) }, first = true)
+            SettingsRow(PhIcons.LockSimple, "Today on lock screen", "Shows your habit names on the lock screen",
+                trailing = { HfToggle(lockScreen, setLockScreen) },
+                onClick = { setLockScreen(!lockScreen) })
             SettingsRow(PhIcons.Eye, "Privacy policy", "What the app stores and why", onClick = onOpenPrivacy)
         }
 

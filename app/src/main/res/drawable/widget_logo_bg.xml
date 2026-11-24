@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Logo mark: lime → mint at 135°, 7dp corners (22dp mark). -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <gradient android:angle="315" android:startColor="#C2FF4D" android:endColor="#34E5A0" />
+    <corners android:radius="7dp" />
+</shape>

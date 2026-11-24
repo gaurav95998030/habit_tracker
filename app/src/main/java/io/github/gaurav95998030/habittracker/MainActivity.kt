@@ -15,6 +15,8 @@ import androidx.annotation.RequiresApi
 import androidx.core.content.ContextCompat
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.background
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.launch
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.tween
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -75,9 +77,15 @@ class MainActivity : ComponentActivity() {
         }
         // Shrink + fade the system icon into the branded launch icon.
         splash.setOnExitAnimationListener { provider ->
-            provider.iconView.animate()
-                .scaleX(0.53f).scaleY(0.53f).alpha(0f)
-                .setDuration(300L)
+            // Launches that don't come from the launcher icon (widget, notification, deep
+            // link) can get an icon-less system splash on Android 12+, and core-splashscreen
+            // then throws from iconView. Fall back to fading the whole splash out.
+            val icon = runCatching { provider.iconView }.getOrNull()
+            val target = icon ?: provider.view
+            target.animate()
+                .apply { if (icon != null) scaleX(0.53f).scaleY(0.53f) }
+                .alpha(0f)
+                .setDuration(if (icon != null) 300L else 200L)
                 .setInterpolator(PathInterpolator(0.2f, 0f, 0f, 1f))
                 .withEndAction { provider.remove() }
                 .start()
@@ -164,6 +172,12 @@ class MainActivity : ComponentActivity() {
         if (!granted) {
             notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // Habits may have been ticked from the widget or lock-screen card meanwhile.
+        if (viewModel.isReady.value) lifecycleScope.launch { viewModel.refreshHabits() }
     }
 
     override fun onNewIntent(intent: Intent) {

@@ -4,6 +4,8 @@ import android.app.Application
 import dagger.hilt.android.HiltAndroidApp
 import io.github.gaurav95998030.habittracker.commons.CrashReporter
 import io.github.gaurav95998030.habittracker.features.reminders.HabitReminderScheduler
+import io.github.gaurav95998030.habittracker.features.widget.HabitWidgetProvider
+import io.github.gaurav95998030.habittracker.features.widget.TodayLockScreen
 import io.github.gaurav95998030.habittracker.features.settings.domain.repository.SettingsRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -33,5 +35,9 @@ class HabitTrackerApplication : Application() {
         // Keep the daily "missed yesterday?" check armed (idempotent; the receiver
         // checks the master switch and quiet hours when it fires).
         reminderScheduler.scheduleMissCheck()
+        // Roll the widget + lock-screen card over to the new day at midnight, and bring
+        // both up to date now (habits may have changed while the process was dead).
+        TodayLockScreen.scheduleMidnightRefresh(this)
+        HabitWidgetProvider.refresh(this)
     }
 }

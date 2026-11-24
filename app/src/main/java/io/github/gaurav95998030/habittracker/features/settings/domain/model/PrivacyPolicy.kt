@@ -47,6 +47,11 @@ object PrivacyPolicy {
             listOf("Notifications — to show the habit reminders you set and the optional morning “missed yesterday” check-in", "Run at startup — to restore your reminders after the phone restarts", "Internet, network state and wake lock — so Firebase can reliably send crash, performance and usage data (when enabled)"),
         ),
         PolicySection(
+            "Lock-screen card (optional)",
+            listOf("If you turn on “Today on lock screen”, the app shows a quiet notification with today’s habit names and progress on your lock screen, so anyone who can see your screen can see them. It is off unless you choose to turn it on, and you can turn it off in Settings → Privacy at any time. This information stays on your device."),
+            listOf(),
+        ),
+        PolicySection(
             "Sharing",
             listOf("When you share a review card or a quote, the app creates an image or text and hands it to the Android share sheet. You choose where it goes; we do not receive a copy."),
             listOf(),

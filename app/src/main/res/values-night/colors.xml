@@ -1,4 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <color name="splash_bg">#070A0B</color>
+    <color name="notif_text">#F2F7F4</color>
+    <color name="notif_text_secondary">#9AACA8</color>
+    <color name="notif_text_tertiary">#5E716D</color>
+    <color name="notif_primary">#C2FF4D</color>
+    <color name="notif_track">#0DFFFFFF</color>
 </resources>
