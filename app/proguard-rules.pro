@@ -10,6 +10,8 @@
 # Keep line numbers so production stack traces remain readable; hide original
 # source file names by collapsing them to "SourceFile".
 -keepattributes SourceFile,LineNumberTable
+# Crashlytics: keep custom exception names readable in reports.
+-keep public class * extends java.lang.Exception
 -renamesourcefileattribute SourceFile
 
 # --- Attributes required by reflection-using libraries ----------------------

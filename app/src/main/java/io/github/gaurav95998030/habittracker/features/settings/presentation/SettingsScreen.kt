@@ -138,6 +138,12 @@ fun SettingsScreen(
                 onClick = { showQuotes = true })
             SettingsRow(PhIcons.ArrowCounterClockwise, "Replay onboarding", onClick = viewModel::replayOnboarding)
             SettingsRow(PhIcons.Info, "Version", "${BuildConfig.VERSION_NAME} (build ${BuildConfig.VERSION_CODE})", trailing = {})
+            if (BuildConfig.DEBUG) {
+                // Debug builds only: verify Crashlytics end to end (report appears after relaunch).
+                SettingsRow(PhIcons.Lightning, "Send test crash", "Debug only · Crashlytics check", onClick = {
+                    throw RuntimeException("HabitForge test crash (debug)")
+                })
+            }
         }
 
         Column(Modifier.fillMaxWidth().padding(top = 6.dp), horizontalAlignment = Alignment.CenterHorizontally) {

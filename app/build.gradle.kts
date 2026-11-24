@@ -3,6 +3,8 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.google.services)
+    alias(libs.plugins.firebase.crashlytics)
+    alias(libs.plugins.firebase.perf)
     alias(libs.plugins.google.dagger)
     alias(libs.plugins.google.ksp)
 }
@@ -48,6 +50,11 @@ android {
             isMinifyEnabled = false
             isShrinkResources = false
             isDebuggable = true
+            // Performance: skip build-time network instrumentation in debug (faster
+            // builds). Automatic app-start / screen traces still work.
+            configure<com.google.firebase.perf.plugin.FirebasePerfExtension> {
+                setInstrumentationEnabled(false)
+            }
         }
         release {
             isMinifyEnabled = true
@@ -63,9 +70,9 @@ android {
 
     // Product flavors layer an "environment" dimension on top of debug/release.
     // Final variants: devDebug, devRelease, prodDebug, prodRelease.
-    // Only `prod` keeps the original applicationId so the existing google-services.json
-    // continues to match — dev needs its package names registered in Firebase
-    // (or its own google-services.json under app/src/dev/) before Firebase calls work.
+    // Firebase project `habittracker-ad5d6`: app/google-services.json registers both
+    // applicationIds (prod `io.github.gaurav95998030.habittracker` and dev `….dev`),
+    // so both flavors connect. A new flavor/suffix must be registered there too.
     flavorDimensions += "environment"
     productFlavors {
         create("dev") {
@@ -128,6 +135,8 @@ dependencies {
     implementation(platform("com.google.firebase:firebase-bom:33.7.0"))
     implementation("com.google.firebase:firebase-analytics")
     implementation("com.google.firebase:firebase-firestore-ktx")
+    implementation("com.google.firebase:firebase-crashlytics")
+    implementation("com.google.firebase:firebase-perf")
 
     // Coroutines for Firebase
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.0")

@@ -7,6 +7,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import io.github.gaurav95998030.habittracker.commons.CrashReporter
 import io.github.gaurav95998030.habittracker.features.habits.HabitCatalog
 import io.github.gaurav95998030.habittracker.features.habits.HabitUtil
 import io.github.gaurav95998030.habittracker.features.habits.domain.usecases.AddHabitUseCase
@@ -149,7 +150,7 @@ class HabitViewModel @Inject constructor(
                 onSaved()
             } catch (e: Exception) {
                 _uiState.update { it.copy(isAddingHabit = false) }
-                Log.e("HabitViewModel", "Error saving habit", e)
+                CrashReporter.record("HabitViewModel", "Error saving habit", e)
             }
         }
     }
@@ -165,7 +166,7 @@ class HabitViewModel @Inject constructor(
                            isLoading = true
                        )
                    }
-                   val habits = getHabitsUseCase.invoke()
+                   val habits = CrashReporter.trace("load_habits") { getHabitsUseCase.invoke() }
                    Log.d("HabitViewModel", "getHabits $habits")
                    _uiState.update {
                        it.copy(
@@ -174,14 +175,14 @@ class HabitViewModel @Inject constructor(
                        )
                    }
                } catch (e: Exception) {
-                   Log.e("HabitViewModel", "Error getting habits", e)
+                   CrashReporter.record("HabitViewModel", "Error getting habits", e)
                    _uiState.update { it.copy(isLoading = false) }
                } finally {
                    _isReady.value = true
                }
            }
         }catch (e: Exception){
-            Log.e("HabitViewModel", "Error getting habits", e)
+            CrashReporter.record("HabitViewModel", "Error getting habits", e)
             _uiState.update {
                 it.copy(
                     habits = emptyList(),
@@ -199,7 +200,7 @@ class HabitViewModel @Inject constructor(
             val habits = getHabitsUseCase.invoke()
             _uiState.update { it.copy(habits = habits) }
         } catch (e: Exception) {
-            Log.e("HabitViewModel", "Error refreshing habits", e)
+            CrashReporter.record("HabitViewModel", "Error refreshing habits", e)
         }
     }
 
@@ -249,7 +250,7 @@ class HabitViewModel @Inject constructor(
                 }
 
             } catch (e: Exception) {
-                Log.e("HabitViewModel", "Error updating habit", e)
+                CrashReporter.record("HabitViewModel", "Error updating habit", e)
             }
         }
     }
@@ -283,7 +284,7 @@ class HabitViewModel @Inject constructor(
                 }
                 refreshWidget()
             } catch (e: Exception) {
-                Log.e("HabitViewModel", "Error updating habit active state", e)
+                CrashReporter.record("HabitViewModel", "Error updating habit active state", e)
             }
         }
     }
@@ -314,7 +315,7 @@ class HabitViewModel @Inject constructor(
                 getHabits()
                 refreshWidget()
             } catch (e: Exception) {
-                Log.e("HabitViewModel", "Error adding onboarding habit", e)
+                CrashReporter.record("HabitViewModel", "Error adding onboarding habit", e)
             }
         }
     }
@@ -329,7 +330,7 @@ class HabitViewModel @Inject constructor(
                 reminderScheduler.cancel(habit.id)
                 refreshWidget()
             } catch (e: Exception) {
-                Log.e("HabitViewModel", "Error deleting habit", e)
+                CrashReporter.record("HabitViewModel", "Error deleting habit", e)
             }
         }
     }
@@ -345,7 +346,7 @@ class HabitViewModel @Inject constructor(
                 getHabits()
                 refreshWidget()
             } catch (e: Exception) {
-                Log.e("HabitViewModel", "Error restoring habit", e)
+                CrashReporter.record("HabitViewModel", "Error restoring habit", e)
             }
         }
     }
@@ -448,7 +449,7 @@ class HabitViewModel @Inject constructor(
                 getHabits()
                 refreshWidget()
             } catch (e: Exception) {
-                Log.e("HabitViewModel", "Error adding habits", e)
+                CrashReporter.record("HabitViewModel", "Error adding habits", e)
             }
         }
     }

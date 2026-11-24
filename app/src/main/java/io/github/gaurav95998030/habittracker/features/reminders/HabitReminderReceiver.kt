@@ -164,7 +164,7 @@ class HabitReminderReceiver : BroadcastReceiver() {
                 )
                 if (missed.isNotEmpty()) showMissNotification(context, missed)
             } catch (e: Exception) {
-                android.util.Log.e("HabitReminder", "miss check failed", e)
+                io.github.gaurav95998030.habittracker.commons.CrashReporter.record("HabitReminder", "miss check failed", e)
             } finally {
                 scheduler.scheduleMissCheck()
                 pending.finish()
