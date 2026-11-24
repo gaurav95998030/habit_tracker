@@ -1,7 +1,7 @@
 package io.github.gaurav95998030.habittracker.features.motivation.presentation
 
-import android.app.Activity
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.LocalActivity
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Animatable
@@ -217,7 +217,7 @@ fun StoryViewer(
 @Composable
 private fun LightStatusBarIcons() {
     val view = LocalView.current
-    val activity = LocalContext.current as? Activity ?: return
+    val activity = LocalActivity.current ?: return
     DisposableEffect(view) {
         val controller = WindowCompat.getInsetsController(activity.window, view)
         val prevStatus = controller.isAppearanceLightStatusBars

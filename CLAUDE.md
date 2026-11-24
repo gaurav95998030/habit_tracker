@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Android habit-tracking app. Kotlin + Jetpack Compose (Material3), Hilt DI, Room (local persistence), DataStore (preferences), Firebase Firestore (remote — wired as dependencies, but `HabitRepositoryImpl` currently backs everything with the Room DAO only). Single-module Gradle build under `:app` with Kotlin DSL.
 
-- `compileSdk=36`, `minSdk=24`, `targetSdk=36`, JVM target 11
+- `compileSdk=36`, `minSdk=27` (Android 8.1), `targetSdk=36`, JVM target 11
 - Package / namespace: `io.github.gaurav95998030.habittracker`
 - Application class: `HabitTrackerApplication` (annotated `@HiltAndroidApp`)
 - Entry point: `MainActivity` (`@AndroidEntryPoint`) → `Habit_TrackerTheme` → `MainScreen` (Scaffold + bottom nav + `AppNavHost`)
@@ -120,7 +120,7 @@ These resolve from `LocalAppColors` / `LocalAppTextStyles` composition locals. D
 - **Room migrations are real now** — bump the DB version and add a `Migration` (see `MIGRATION_1_2`, which added the reminder columns) plus register it in `DatabaseModule`. Do not fall back to destructive migration.
 - `HabitUtil` centralises date helpers (`getDatesOfCurrentYear`, `getLast7Days`, etc.) and color ⇄ hex conversion, plus `generateUniqueId()`. Reuse these rather than re-deriving in composables.
 - Use cases expose `suspend operator fun invoke(...)` — call as `useCase(arg)` or `useCase.invoke(arg)`.
-- Screens/ViewModel code using `java.time.*` are annotated `@RequiresApi(Build.VERSION_CODES.O)` because `minSdk=24`. Maintain this annotation when introducing new date-based code, or use desugaring if that changes.
+- `minSdk=27`, so `java.time.*` (API 26) is always available. The existing `@RequiresApi(Build.VERSION_CODES.O)` annotations are now redundant but harmless; new code doesn't need them.
 - The `habits` `HabitViewModel` is intentionally shared across the Home and Insights tabs — don't swap it for a per-screen `hiltViewModel()` without accounting for deep-link delivery and shared state.
 
 ## Notable design docs

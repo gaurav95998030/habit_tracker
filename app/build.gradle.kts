@@ -22,7 +22,7 @@ android {
 
     defaultConfig {
         applicationId = "io.github.gaurav95998030.habittracker"
-        minSdk = 24
+        minSdk = 27
         targetSdk = 36
         versionCode = 1
         versionName = "1.0"
