@@ -4,15 +4,28 @@ import android.app.Application
 import dagger.hilt.android.HiltAndroidApp
 import io.github.gaurav95998030.habittracker.commons.CrashReporter
 import io.github.gaurav95998030.habittracker.features.reminders.HabitReminderScheduler
+import io.github.gaurav95998030.habittracker.features.settings.domain.repository.SettingsRepository
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltAndroidApp
 class HabitTrackerApplication : Application() {
 
     @Inject lateinit var reminderScheduler: HabitReminderScheduler
+    @Inject lateinit var settingsRepository: SettingsRepository
+
+    private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     override fun onCreate() {
         super.onCreate()
+        // Respect the user's "Share usage & crash data" choice (Settings → Privacy).
+        appScope.launch {
+            CrashReporter.setCollectionEnabled(this@HabitTrackerApplication, settingsRepository.diagnosticsEnabled.first())
+        }
         // Tag every Crashlytics report with the build flavour so dev noise is easy to
         // filter out (dev and prod are also separate Firebase apps).
         CrashReporter.setKey("environment", BuildConfig.ENVIRONMENT)

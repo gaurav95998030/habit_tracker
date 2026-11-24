@@ -80,7 +80,7 @@ fun BrandedLaunch(onFinished: () -> Unit) {
     Box(
         Modifier
             .fillMaxSize()
-            .semantics { contentDescription = "HabitForge" }
+            .semantics { contentDescription = "Glowstreak" }
             .drawBehind {
                 drawRect(c.background)
                 drawRect(
@@ -126,13 +126,13 @@ fun BrandedLaunch(onFinished: () -> Unit) {
                 },
             ) {
                 Text(
-                    "HabitForge",
+                    "Glowstreak",
                     style = AppTheme.textStyles.displayLarge.copy(fontSize = 32.sp, lineHeight = 36.sp, letterSpacing = (-0.8).sp),
                     color = c.textPrimary,
                 )
                 Spacer(Modifier.height(6.dp))
                 Text(
-                    "Forge the days. The years follow.",
+                    "Light up the days. The years follow.",
                     style = AppTheme.textStyles.bodyMedium.copy(fontWeight = FontWeight.Medium),
                     color = c.textSecondary,
                 )

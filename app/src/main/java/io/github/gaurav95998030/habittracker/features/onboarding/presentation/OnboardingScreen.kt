@@ -204,7 +204,7 @@ private fun WelcomeStep(onNext: () -> Unit) {
             StreakBadge(value = 147, modifier = Modifier.wrapContentWidth(unbounded = true))
         }
         Text(
-            "Forge the days.\nThe years follow.",
+            "Light up the days.\nThe years follow.",
             style = AppTheme.textStyles.titleLarge.copy(fontSize = 32.sp, lineHeight = 36.sp, letterSpacing = (-0.8).sp, textAlign = TextAlign.Center),
             color = c.textPrimary,
         )
@@ -346,7 +346,7 @@ private fun FirstHabitStep(
             HfSwatches(selectedHex = colorHex, onSelect = onColor)
             Spacer(Modifier.height(24.dp).width(1.dp))
         }
-        HfButton("Start forging", onClick = onFinish, icon = PhIcons.Lightning, iconWeight = PhWeight.Fill,
+        HfButton("Start my streak", onClick = onFinish, icon = PhIcons.Lightning, iconWeight = PhWeight.Fill,
             size = HfButtonSize.Large, fullWidth = true)
     }
 }

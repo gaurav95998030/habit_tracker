@@ -29,6 +29,17 @@ object CrashReporter {
         crashlytics?.log(message)
     }
 
+    /**
+     * The user's "Share usage & crash data" choice, applied to Analytics, Crashlytics
+     * and Performance. Each SDK persists the flag itself; we re-apply on every start.
+     */
+    fun setCollectionEnabled(context: android.content.Context, enabled: Boolean) {
+        runCatching { com.google.firebase.analytics.FirebaseAnalytics.getInstance(context).setAnalyticsCollectionEnabled(enabled) }
+        crashlytics?.setCrashlyticsCollectionEnabled(enabled)
+        runCatching { FirebasePerformance.getInstance().isPerformanceCollectionEnabled = enabled }
+        if (!enabled) runCatching { com.google.firebase.analytics.FirebaseAnalytics.getInstance(context).resetAnalyticsData() }
+    }
+
     fun setKey(key: String, value: String) {
         crashlytics?.setCustomKey(key, value)
     }

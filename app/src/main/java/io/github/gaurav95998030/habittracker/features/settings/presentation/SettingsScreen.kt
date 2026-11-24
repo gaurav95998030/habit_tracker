@@ -71,6 +71,7 @@ fun SettingsScreen(
     viewModel: SettingsViewModel,
     onOpenNotifications: () -> Unit,
     onOpenWidget: () -> Unit,
+    onOpenPrivacy: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val c = AppTheme.colors
@@ -79,6 +80,7 @@ fun SettingsScreen(
     val userName by viewModel.userName.collectAsStateWithLifecycle()
     val quiet by viewModel.quietHours.collectAsStateWithLifecycle()
     val savedQuotes by viewModel.savedQuotes.collectAsStateWithLifecycle()
+    val diagnostics by viewModel.diagnosticsEnabled.collectAsStateWithLifecycle()
     var showQuotes by rememberSaveable { mutableStateOf(false) }
 
     var editingName by rememberSaveable { mutableStateOf(false) }
@@ -131,6 +133,13 @@ fun SettingsScreen(
             )
         }
 
+        SettingsGroup("Privacy") {
+            SettingsRow(PhIcons.ChartLineUp, "Share usage & crash data", "Anonymous analytics, crash reports and performance",
+                trailing = { HfToggle(diagnostics, viewModel::onDiagnosticsChanged) },
+                onClick = { viewModel.onDiagnosticsChanged(!diagnostics) }, first = true)
+            SettingsRow(PhIcons.Eye, "Privacy policy", "What the app stores and why", onClick = onOpenPrivacy)
+        }
+
         SettingsGroup("About") {
             SettingsRow(PhIcons.Sparkle, "What's new", "Aurora redesign", onClick = { showWhatsNew = true }, first = true)
             SettingsRow(PhIcons.BookmarkSimple, "Saved quotes",
@@ -141,14 +150,14 @@ fun SettingsScreen(
             if (BuildConfig.DEBUG) {
                 // Debug builds only: verify Crashlytics end to end (report appears after relaunch).
                 SettingsRow(PhIcons.Lightning, "Send test crash", "Debug only · Crashlytics check", onClick = {
-                    throw RuntimeException("HabitForge test crash (debug)")
+                    throw RuntimeException("Glowstreak test crash (debug)")
                 })
             }
         }
 
         Column(Modifier.fillMaxWidth().padding(top = 6.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-            Text("HABITFORGE", style = AppTheme.textStyles.titleSmall.copy(letterSpacing = 0.5.sp), fontWeight = FontWeight.SemiBold, color = c.textTertiary)
-            Text("Forge the days. The years follow.", style = AppTheme.textStyles.caption, color = c.textTertiary, modifier = Modifier.padding(top = 4.dp))
+            Text("GLOWSTREAK", style = AppTheme.textStyles.titleSmall.copy(letterSpacing = 0.5.sp), fontWeight = FontWeight.SemiBold, color = c.textTertiary)
+            Text("Light up the days. The years follow.", style = AppTheme.textStyles.caption, color = c.textTertiary, modifier = Modifier.padding(top = 4.dp))
         }
     }
 
@@ -249,7 +258,7 @@ private fun ProfileCard(userName: String, onEdit: () -> Unit, modifier: Modifier
         Column(Modifier.weight(1f)) {
             Text(userName.ifBlank { "Add your name" }, style = AppTheme.textStyles.titleMedium.copy(letterSpacing = (-0.2).sp),
                 fontWeight = FontWeight.SemiBold, color = c.textPrimary)
-            Text("HabitForge member · forging daily", style = AppTheme.textStyles.bodySmall, color = c.textTertiary)
+            Text("Glowstreak member · glowing daily", style = AppTheme.textStyles.bodySmall, color = c.textTertiary)
         }
         PhIcon(PhIcons.PencilSimple, size = 18.dp, tint = c.textTertiary)
     }

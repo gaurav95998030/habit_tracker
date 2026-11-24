@@ -9,6 +9,9 @@ import io.github.gaurav95998030.habittracker.features.settings.domain.model.Quie
 import io.github.gaurav95998030.habittracker.features.settings.domain.model.ThemePreference
 import io.github.gaurav95998030.habittracker.features.settings.domain.repository.SettingsRepository
 import kotlinx.coroutines.flow.MutableStateFlow
+import android.content.Context
+import dagger.hilt.android.qualifiers.ApplicationContext
+import io.github.gaurav95998030.habittracker.commons.CrashReporter
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -22,6 +25,7 @@ class SettingsViewModel @Inject constructor(
     private val settingsRepository: SettingsRepository,
     private val habitRepository: HabitRepository,
     private val reminderScheduler: HabitReminderScheduler,
+    @ApplicationContext private val appContext: Context,
 ) : ViewModel() {
 
     val themePreference: StateFlow<ThemePreference> =
@@ -55,6 +59,17 @@ class SettingsViewModel @Inject constructor(
 
     val savedQuotes: StateFlow<Set<String>> =
         settingsRepository.savedQuotes.stateIn(viewModelScope, SharingStarted.Eagerly, emptySet())
+
+    val diagnosticsEnabled: StateFlow<Boolean> =
+        settingsRepository.diagnosticsEnabled.stateIn(viewModelScope, SharingStarted.Eagerly, true)
+
+    /** "Share usage & crash data" toggle: persist, then apply to the Firebase SDKs. */
+    fun onDiagnosticsChanged(enabled: Boolean) {
+        viewModelScope.launch {
+            settingsRepository.setDiagnosticsEnabled(enabled)
+            CrashReporter.setCollectionEnabled(appContext, enabled)
+        }
+    }
 
     fun markStorySeen(key: String) {
         viewModelScope.launch { settingsRepository.markStorySeen(key) }

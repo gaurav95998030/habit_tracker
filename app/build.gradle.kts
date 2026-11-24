@@ -79,14 +79,14 @@ android {
             dimension = "environment"
             applicationIdSuffix = ".dev"
             versionNameSuffix = "-dev"
-            resValue("string", "app_name", "Habit Tracker (Dev)")
+            resValue("string", "app_name", "Glowstreak (Dev)")
             buildConfigField("String", "API_BASE_URL", "\"https://dev.api.habittracker.example/\"")
             buildConfigField("String", "ENVIRONMENT", "\"dev\"")
         }
         create("prod") {
             dimension = "environment"
             // No suffix — keeps applicationId == io.github.gaurav95998030.habittracker
-            resValue("string", "app_name", "Habit Tracker")
+            resValue("string", "app_name", "Glowstreak")
             buildConfigField("String", "API_BASE_URL", "\"https://api.habittracker.example/\"")
             buildConfigField("String", "ENVIRONMENT", "\"prod\"")
         }

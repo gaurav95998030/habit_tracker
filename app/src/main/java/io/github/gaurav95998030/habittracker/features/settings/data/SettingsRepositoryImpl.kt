@@ -58,6 +58,13 @@ class SettingsRepositoryImpl @Inject constructor(
     override val savedQuotes: Flow<Set<String>> =
         dataStore.data.map { it[Keys.SavedQuotes] ?: emptySet() }
 
+    override val diagnosticsEnabled: Flow<Boolean> =
+        dataStore.data.map { it[Keys.DiagnosticsEnabled] ?: true }
+
+    override suspend fun setDiagnosticsEnabled(enabled: Boolean) {
+        dataStore.edit { it[Keys.DiagnosticsEnabled] = enabled }
+    }
+
     override val activePlans: Flow<Map<String, String>> =
         dataStore.data.map { prefs ->
             prefs[Keys.ActivePlans].orEmpty().mapNotNull { e ->
@@ -133,5 +140,6 @@ class SettingsRepositoryImpl @Inject constructor(
         val SeenStories = stringSetPreferencesKey("seen_stories")
         val SavedQuotes = stringSetPreferencesKey("saved_quotes")
         val ActivePlans = stringSetPreferencesKey("active_plans")
+        val DiagnosticsEnabled = booleanPreferencesKey("diagnostics_enabled")
     }
 }

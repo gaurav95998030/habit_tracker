@@ -33,6 +33,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import io.github.gaurav95998030.habittracker.features.reminders.presentation.NotificationCenterScreen
 import io.github.gaurav95998030.habittracker.features.settings.presentation.SettingsScreen
+import io.github.gaurav95998030.habittracker.features.settings.presentation.PrivacyPolicyScreen
 import io.github.gaurav95998030.habittracker.features.settings.presentation.SettingsViewModel
 import io.github.gaurav95998030.habittracker.ui.theme.AppMotion
 
@@ -41,6 +42,7 @@ const val NOTIFICATIONS_ROUTE = "notifications"
 const val PLANS_ROUTE = "plans"
 const val MISSES_ROUTE = "misses"
 const val CHECKIN_ROUTE = "checkin"
+const val PRIVACY_ROUTE = "privacy"
 private const val STACK_ROUTE = "stack/{stackId}"
 fun stackRoute(id: String) = "stack/$id"
 
@@ -112,6 +114,7 @@ fun AppNavHost(
                 viewModel = settingsViewModel,
                 onOpenNotifications = { navController.navigate(NOTIFICATIONS_ROUTE) },
                 onOpenWidget = onOpenWidgetPromo,
+                onOpenPrivacy = { navController.navigate(PRIVACY_ROUTE) },
             )
         }
         composable(NOTIFICATIONS_ROUTE) {
@@ -152,6 +155,9 @@ fun AppNavHost(
                     onSelectTab(TopLevelDestination.Home)
                 },
             )
+        }
+        composable(PRIVACY_ROUTE) {
+            PrivacyPolicyScreen(onBack = { navController.popBackStack() })
         }
         composable(CHECKIN_ROUTE) {
             CheckInScreen(habits, energy, motivationViewModel::setTodayEnergy, onBack = { navController.popBackStack() })

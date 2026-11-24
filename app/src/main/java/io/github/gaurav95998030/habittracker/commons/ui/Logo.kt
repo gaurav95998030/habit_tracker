@@ -37,13 +37,13 @@ fun LogoMark(size: Dp = 28.dp, modifier: Modifier = Modifier, glowing: Boolean =
     }
 }
 
-/** Mark + "HabitForge" wordmark. */
+/** Mark + "Glowstreak" wordmark. */
 @Composable
 fun Logo(size: Dp = 28.dp, modifier: Modifier = Modifier) {
     Row(modifier, verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
         LogoMark(size)
         Text(
-            "HabitForge",
+            "Glowstreak",
             style = AppTheme.textStyles.titleLarge.copy(fontSize = (size.value * 0.7f).sp, letterSpacing = (-0.5).sp),
             color = AppTheme.colors.textPrimary,
         )

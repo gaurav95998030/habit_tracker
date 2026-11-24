@@ -41,6 +41,9 @@ interface SettingsRepository {
     /** Running starter plans: plan id → start date ("yyyy-MM-dd"). */
     val activePlans: Flow<Map<String, String>>
 
+    /** Opt-in for anonymous usage analytics, crash reports and performance data (default on). */
+    val diagnosticsEnabled: Flow<Boolean>
+
     suspend fun setThemePreference(value: ThemePreference)
     suspend fun setNotificationsEnabled(enabled: Boolean)
     suspend fun setUserName(name: String)
@@ -52,4 +55,5 @@ interface SettingsRepository {
     suspend fun setQuoteSaved(quote: String, saved: Boolean)
     /** Start (non-null [startDate]) or end (null) a starter plan. */
     suspend fun setPlan(planId: String, startDate: String?)
+    suspend fun setDiagnosticsEnabled(enabled: Boolean)
 }

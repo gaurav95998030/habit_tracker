@@ -1,7 +1,7 @@
 package io.github.gaurav95998030.habittracker.ui.theme
 
 /**
- * Phosphor icon glyphs (MIT, phosphoricons.com) used by the HabitForge design.
+ * Phosphor icon glyphs (MIT, phosphoricons.com) used by the Glowstreak design.
  * The fonts in res/font/phosphor_*.ttf are subset to exactly these code points —
  * to add an icon, re-run the subset step with the new name and add it here.
  * Render with [PhIcon]. [byName] resolves the design's "ph-xxx" names (stored on habits).

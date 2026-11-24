@@ -118,7 +118,7 @@ fun WidgetPromoSheet(habits: List<Habit>, onDismiss: () -> Unit) {
                     modifier = Modifier.padding(top = 14.dp),
                 )
                 Text(
-                    "Add the HabitForge widget to your home screen and check habits off in a single tap.",
+                    "Add the Glowstreak widget to your home screen and check habits off in a single tap.",
                     style = AppTheme.textStyles.bodyMedium.copy(lineHeight = 21.sp),
                     color = c.textSecondary,
                     modifier = Modifier.padding(top = 10.dp),
@@ -161,7 +161,7 @@ private fun requestPinWidget(context: Context) {
     if (!pinned) {
         Toast.makeText(
             context,
-            "Long-press your home screen → Widgets → HabitForge to add it.",
+            "Long-press your home screen → Widgets → Glowstreak to add it.",
             Toast.LENGTH_LONG,
         ).show()
     }
@@ -192,7 +192,7 @@ fun WidgetPreview(habits: List<Habit>, modifier: Modifier = Modifier, maxRows: I
         Row(Modifier.fillMaxWidth().padding(bottom = 14.dp), verticalAlignment = Alignment.CenterVertically) {
             LogoMark(22.dp, glowing = false)
             HSpace(9.dp)
-            Text("HabitForge", style = AppTheme.textStyles.titleSmall.copy(fontSize = 14.sp), fontWeight = FontWeight.SemiBold, color = c.textPrimary,
+            Text("Glowstreak", style = AppTheme.textStyles.titleSmall.copy(fontSize = 14.sp), fontWeight = FontWeight.SemiBold, color = c.textPrimary,
                 modifier = Modifier.weight(1f))
             Text("$doneCount/${active.size}", style = AppTheme.textStyles.bodySmall.copy(fontWeight = FontWeight.SemiBold), color = c.primary)
             HSpace(4.dp)

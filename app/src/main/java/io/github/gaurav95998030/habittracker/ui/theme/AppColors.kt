@@ -5,7 +5,7 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 
 /**
- * Semantic color tokens — the HabitForge "Aurora" palette (1:1 with the design's
+ * Semantic color tokens — the Glowstreak "Aurora" palette (1:1 with the design's
  * tokens.jsx). Dark is the hero theme; light is its daylight counterpart.
  *
  * The aurora-specific tokens ([surface2], [glassFill], [glassBorder], [heatEmpty],

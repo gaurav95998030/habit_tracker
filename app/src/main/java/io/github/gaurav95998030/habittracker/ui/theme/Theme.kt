@@ -41,7 +41,7 @@ private fun AppColors.toMaterialScheme(): ColorScheme {
 }
 
 /**
- * Root theme. Provides the HabitForge tokens via [AppTheme] plus a matching
+ * Root theme. Provides the Glowstreak tokens via [AppTheme] plus a matching
  * Material 3 theme. Dynamic color is intentionally not supported — the Aurora
  * palette is the source of truth.
  */

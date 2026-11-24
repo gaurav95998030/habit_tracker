@@ -99,7 +99,7 @@ fun MotivationStory(
         )
         StoryKind.Year -> StoryViewer(
             slides = remember(habits, year) { yearSlides(habits, name, year) },
-            title = "HabitForge Wrapped", subtitle = "$year", color = StoryPalette.lime, icon = PhIcons.Trophy, onClose = onClose,
+            title = "Glowstreak Wrapped", subtitle = "$year", color = StoryPalette.lime, icon = PhIcons.Trophy, onClose = onClose,
         )
     }
 }
@@ -336,7 +336,7 @@ private fun weekSlides(habits: List<Habit>, name: String): List<StorySlide> {
                 }
             }
             Spacer(Modifier.weight(1f))
-            ShareCardButton("Share your week", layer, "habitforge-week")
+            ShareCardButton("Share your week", layer, "glowstreak-week")
         },
     )
 }
@@ -421,7 +421,7 @@ private fun monthSlides(habits: List<Habit>, name: String): List<StorySlide> {
                 HeatStrip(m.days.map { it.percent }, columns = 16, color = StoryPalette.amber, modifier = Modifier.padding(top = 20.dp))
             }
             Spacer(Modifier.weight(1f))
-            ShareCardButton("Share your month", layer, "habitforge-month")
+            ShareCardButton("Share your month", layer, "glowstreak-month")
         },
     )
 }
@@ -486,7 +486,7 @@ private fun yearSlides(habits: List<Habit>, name: String, year: Int): List<Story
                 HeatStrip(y.recentDays, columns = 26, color = StoryPalette.lime, columnMajor = true, modifier = Modifier.padding(top = 22.dp))
             }
             Spacer(Modifier.weight(1f))
-            ShareCardButton("Share your year", layer, "habitforge-$year")
+            ShareCardButton("Share your year", layer, "glowstreak-$year")
         },
     )
 }

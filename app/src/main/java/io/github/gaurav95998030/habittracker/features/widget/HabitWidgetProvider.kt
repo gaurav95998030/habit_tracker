@@ -18,7 +18,7 @@ import kotlinx.coroutines.launch
 import java.time.LocalDate
 
 /**
- * "HabitForge — today" home-screen widget: lists the active habits with a tappable
+ * "Glowstreak — today" home-screen widget: lists the active habits with a tappable
  * check circle for each. The list is backed by [HabitWidgetService] /
  * [HabitWidgetFactory]; row taps come back here as [ACTION_WIDGET_TOGGLE].
  */

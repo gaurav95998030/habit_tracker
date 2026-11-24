@@ -13,7 +13,7 @@ Android habit-tracking app. Kotlin + Jetpack Compose (Material3), Hilt DI, Room 
 
 ## Commands
 
-Use the Gradle wrapper. Firebase is enabled via `app/google-services.json` (checked in).
+Use the Gradle wrapper. Firebase project `habittracker-ad5d6` (Analytics, Crashlytics, Performance) via `app/google-services.json` — **gitignored**, so copy it onto each machine / inject it in CI.
 
 **JDK:** Gradle/Kotlin 2.0.21 cannot run on JDK 25 (fails with a bare `25.0.4` error) — and Android Studio's bundled JBR on this machine is 25. Build with JDK 21: `export JAVA_HOME=~/Library/Java/JavaVirtualMachines/jbr-21.0.11/Contents/Home`.
 
@@ -43,7 +43,7 @@ Feature-first Clean Architecture. Everything lives under `io.github.gaurav959980
 
 Features: **`habits`** (the core), **`insights`** (stats screen), **`reminders`** (alarm-driven notifications + Notification Center), **`settings`** (theme, profile name, master notification switch, quiet hours), **`onboarding`** (4-step first run), **`motivation`** (stories & reviews, comeback mode, miss logging, energy check-ins, habit stacks, starter plans), **`widget`** (RemoteViews home-screen widget + Compose "add the widget" nudge).
 
-The UI implements the **HabitForge "Aurora"** design (source: a bundled React prototype, `HabitForge-All-Screens.html`). Screens: onboarding (welcome/name/categories/first habit), Home (loading/empty/list), habit detail + add/edit sheets, Insights, Settings, Notification Center, widget nudge sheet, and the reminder notification (Mark done / Snooze 1h). A second design file (`HabitForge-Motivation-Screens.html`) added the `motivation` feature screens.
+The app is branded **Glowstreak** (launcher label via `resValue("app_name")` in `app/build.gradle.kts`; tagline "Light up the days. The years follow."). The UI implements the "Aurora" design — the design files still carry its working title, HabitForge (source: a bundled React prototype, `HabitForge-All-Screens.html`). Screens: onboarding (welcome/name/categories/first habit), Home (loading/empty/list), habit detail + add/edit sheets, Insights, Settings, Notification Center, widget nudge sheet, and the reminder notification (Mark done / Snooze 1h). A second design file (`HabitForge-Motivation-Screens.html`) added the `motivation` feature screens.
 
 ### Navigation
 

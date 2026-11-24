@@ -461,7 +461,7 @@ private fun EmptyState(onAdd: () -> Unit, onBrowsePlans: () -> Unit) {
             modifier = Modifier.padding(top = 22.dp),
         )
         Text(
-            "Small, daily, repeatable. Pick one thing and forge a streak you won't want to break.",
+            "Small, daily, repeatable. Pick one thing and light up a streak you won't want to break.",
             style = AppTheme.textStyles.bodyMedium.copy(lineHeight = 21.sp),
             color = c.textSecondary,
             textAlign = TextAlign.Center,
