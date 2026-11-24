@@ -1,0 +1,425 @@
+{
+  "version": 1,
+  "plans": [
+    {
+      "id": "morning",
+      "name": "Morning routine",
+      "days": 21,
+      "color": "#FFB23E",
+      "icon": "ph-sun-horizon",
+      "blurb": "Win the first hour of the day.",
+      "habits": [
+        {
+          "name": "Drink water on waking",
+          "icon": "ph-drop",
+          "color": "#29D4D9",
+          "category": "Health"
+        },
+        {
+          "name": "10-minute walk",
+          "icon": "ph-person-simple-walk",
+          "color": "#34E5A0",
+          "category": "Body"
+        },
+        {
+          "name": "Journal 1 page",
+          "icon": "ph-notebook",
+          "color": "#FF6AD5",
+          "category": "Mind"
+        }
+      ]
+    },
+    {
+      "id": "sleep",
+      "name": "Better sleep",
+      "days": 30,
+      "color": "#7C8CFF",
+      "icon": "ph-moon-stars",
+      "blurb": "A calmer wind-down, every night.",
+      "habits": [
+        {
+          "name": "No screens after 10 PM",
+          "icon": "ph-device-mobile-slash",
+          "color": "#7C8CFF",
+          "category": "Sleep"
+        },
+        {
+          "name": "Read 10 pages",
+          "icon": "ph-book-open",
+          "color": "#3BA9FF",
+          "category": "Mind"
+        },
+        {
+          "name": "Lights out by 11",
+          "icon": "ph-moon",
+          "color": "#FFB23E",
+          "category": "Sleep"
+        },
+        {
+          "name": "No caffeine after 2 PM",
+          "icon": "ph-coffee",
+          "color": "#FF6F61",
+          "category": "Health"
+        }
+      ]
+    },
+    {
+      "id": "focus",
+      "name": "Focus reset",
+      "days": 21,
+      "color": "#B6FF3C",
+      "icon": "ph-target",
+      "blurb": "Deep work without the drift.",
+      "habits": [
+        {
+          "name": "One 50-min deep block",
+          "icon": "ph-timer",
+          "color": "#B6FF3C",
+          "category": "Focus"
+        },
+        {
+          "name": "Plan tomorrow tonight",
+          "icon": "ph-list-checks",
+          "color": "#3BA9FF",
+          "category": "Focus"
+        },
+        {
+          "name": "Meditate 5 min",
+          "icon": "ph-flower-lotus",
+          "color": "#34E5A0",
+          "category": "Mind"
+        }
+      ]
+    },
+    {
+      "id": "fitness",
+      "name": "Fitness kickstart",
+      "days": 30,
+      "color": "#FF6F61",
+      "icon": "ph-barbell",
+      "blurb": "Build strength, one session at a time.",
+      "habits": [
+        {
+          "name": "20-minute workout",
+          "icon": "ph-barbell",
+          "color": "#FF6F61",
+          "category": "Body"
+        },
+        {
+          "name": "8,000 steps",
+          "icon": "ph-sneaker-move",
+          "color": "#34E5A0",
+          "category": "Body"
+        },
+        {
+          "name": "Stretch 5 min",
+          "icon": "ph-person-simple-walk",
+          "color": "#FFB23E",
+          "category": "Body"
+        }
+      ]
+    },
+    {
+      "id": "mindful",
+      "name": "Mindful mind",
+      "days": 21,
+      "color": "#34E5A0",
+      "icon": "ph-flower-lotus",
+      "blurb": "Ten calm minutes, every day.",
+      "habits": [
+        {
+          "name": "Meditate 10 min",
+          "icon": "ph-flower-lotus",
+          "color": "#34E5A0",
+          "category": "Mind"
+        },
+        {
+          "name": "Write one gratitude",
+          "icon": "ph-heart",
+          "color": "#FF6AD5",
+          "category": "Mind"
+        },
+        {
+          "name": "Mindful walk",
+          "icon": "ph-person-simple-walk",
+          "color": "#29D4D9",
+          "category": "Mind"
+        }
+      ]
+    },
+    {
+      "id": "hydrate",
+      "name": "Hydrate & nourish",
+      "days": 14,
+      "color": "#29D4D9",
+      "icon": "ph-drop",
+      "blurb": "Simple fuel for better days.",
+      "habits": [
+        {
+          "name": "Drink 2L water",
+          "icon": "ph-drop",
+          "color": "#29D4D9",
+          "category": "Health"
+        },
+        {
+          "name": "Eat a fruit or veg",
+          "icon": "ph-bowl-food",
+          "color": "#B6FF3C",
+          "category": "Health"
+        },
+        {
+          "name": "No sugary drinks",
+          "icon": "ph-cookie",
+          "color": "#FF6F61",
+          "category": "Health"
+        }
+      ]
+    },
+    {
+      "id": "detox",
+      "name": "Digital detox",
+      "days": 21,
+      "color": "#3BA9FF",
+      "icon": "ph-device-mobile-slash",
+      "blurb": "Less scrolling, more living.",
+      "habits": [
+        {
+          "name": "No phone first hour",
+          "icon": "ph-device-mobile-slash",
+          "color": "#3BA9FF",
+          "category": "Focus"
+        },
+        {
+          "name": "Screen time under 2h",
+          "icon": "ph-device-mobile",
+          "color": "#7C8CFF",
+          "category": "Focus"
+        },
+        {
+          "name": "Phone-free meals",
+          "icon": "ph-bowl-food",
+          "color": "#FFB23E",
+          "category": "Social"
+        }
+      ]
+    },
+    {
+      "id": "reading",
+      "name": "Reading habit",
+      "days": 30,
+      "color": "#3BA9FF",
+      "icon": "ph-book-open",
+      "blurb": "A few pages a day adds up to books.",
+      "habits": [
+        {
+          "name": "Read 20 pages",
+          "icon": "ph-book-open",
+          "color": "#3BA9FF",
+          "category": "Mind"
+        },
+        {
+          "name": "Note one idea",
+          "icon": "ph-notebook",
+          "color": "#FF6AD5",
+          "category": "Mind"
+        }
+      ]
+    },
+    {
+      "id": "money",
+      "name": "Money mindset",
+      "days": 30,
+      "color": "#B6FF3C",
+      "icon": "ph-piggy-bank",
+      "blurb": "Small, steady wins with money.",
+      "habits": [
+        {
+          "name": "Log every expense",
+          "icon": "ph-list-checks",
+          "color": "#B6FF3C",
+          "category": "Money"
+        },
+        {
+          "name": "No-spend check-in",
+          "icon": "ph-piggy-bank",
+          "color": "#34E5A0",
+          "category": "Money"
+        },
+        {
+          "name": "Read 5 min on finance",
+          "icon": "ph-book-open",
+          "color": "#3BA9FF",
+          "category": "Money"
+        }
+      ]
+    },
+    {
+      "id": "creative",
+      "name": "Creative spark",
+      "days": 21,
+      "color": "#FF6AD5",
+      "icon": "ph-palette",
+      "blurb": "Make something small, daily.",
+      "habits": [
+        {
+          "name": "Sketch or doodle",
+          "icon": "ph-palette",
+          "color": "#FF6AD5",
+          "category": "Creative"
+        },
+        {
+          "name": "Write 100 words",
+          "icon": "ph-pencil-simple",
+          "color": "#FFB23E",
+          "category": "Creative"
+        },
+        {
+          "name": "Capture one idea",
+          "icon": "ph-lightbulb",
+          "color": "#B6FF3C",
+          "category": "Creative"
+        }
+      ]
+    },
+    {
+      "id": "social",
+      "name": "Stay connected",
+      "days": 21,
+      "color": "#FFB23E",
+      "icon": "ph-users-three",
+      "blurb": "Keep the people who matter close.",
+      "habits": [
+        {
+          "name": "Message a friend",
+          "icon": "ph-users-three",
+          "color": "#FFB23E",
+          "category": "Social"
+        },
+        {
+          "name": "Call family",
+          "icon": "ph-heart",
+          "color": "#FF6F61",
+          "category": "Social"
+        },
+        {
+          "name": "One kind act",
+          "icon": "ph-sparkle",
+          "color": "#B6FF3C",
+          "category": "Social"
+        }
+      ]
+    },
+    {
+      "id": "study",
+      "name": "Study sprint",
+      "days": 30,
+      "color": "#7C8CFF",
+      "icon": "ph-graduation-cap",
+      "blurb": "Consistent study beats cramming.",
+      "habits": [
+        {
+          "name": "45-min study block",
+          "icon": "ph-graduation-cap",
+          "color": "#7C8CFF",
+          "category": "Focus"
+        },
+        {
+          "name": "Review notes",
+          "icon": "ph-notebook",
+          "color": "#3BA9FF",
+          "category": "Focus"
+        },
+        {
+          "name": "Plan tomorrow’s topics",
+          "icon": "ph-list-checks",
+          "color": "#B6FF3C",
+          "category": "Focus"
+        }
+      ]
+    },
+    {
+      "id": "winddown",
+      "name": "Evening wind-down",
+      "days": 14,
+      "color": "#7C8CFF",
+      "icon": "ph-moon",
+      "blurb": "Close the day calmly.",
+      "habits": [
+        {
+          "name": "Tidy up 10 min",
+          "icon": "ph-house",
+          "color": "#FFB23E",
+          "category": "Health"
+        },
+        {
+          "name": "Journal 3 lines",
+          "icon": "ph-notebook",
+          "color": "#FF6AD5",
+          "category": "Mind"
+        },
+        {
+          "name": "Lights out on time",
+          "icon": "ph-moon",
+          "color": "#7C8CFF",
+          "category": "Sleep"
+        }
+      ]
+    },
+    {
+      "id": "energy",
+      "name": "Energy boost",
+      "days": 21,
+      "color": "#B6FF3C",
+      "icon": "ph-lightning",
+      "blurb": "Feel more awake through the day.",
+      "habits": [
+        {
+          "name": "10 min morning sunlight",
+          "icon": "ph-sun",
+          "color": "#FFB23E",
+          "category": "Health"
+        },
+        {
+          "name": "No caffeine after 2 PM",
+          "icon": "ph-coffee",
+          "color": "#FF6F61",
+          "category": "Sleep"
+        },
+        {
+          "name": "Walk after lunch",
+          "icon": "ph-sneaker-move",
+          "color": "#34E5A0",
+          "category": "Body"
+        }
+      ]
+    },
+    {
+      "id": "skill",
+      "name": "Learn a skill",
+      "days": 30,
+      "color": "#34E5A0",
+      "icon": "ph-lightbulb",
+      "blurb": "Twenty focused minutes, every day.",
+      "habits": [
+        {
+          "name": "Practise 20 min",
+          "icon": "ph-timer",
+          "color": "#34E5A0",
+          "category": "Focus"
+        },
+        {
+          "name": "One lesson or chapter",
+          "icon": "ph-graduation-cap",
+          "color": "#3BA9FF",
+          "category": "Mind"
+        },
+        {
+          "name": "Track your progress",
+          "icon": "ph-chart-line-up",
+          "color": "#B6FF3C",
+          "category": "Focus"
+        }
+      ]
+    }
+  ]
+}

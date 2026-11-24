@@ -21,6 +21,9 @@ import io.github.gaurav95998030.habittracker.features.motivation.domain.usecases
 import io.github.gaurav95998030.habittracker.features.motivation.domain.usecases.SaveStackUseCase
 import io.github.gaurav95998030.habittracker.features.motivation.domain.usecases.DeleteStackUseCase
 
+import io.github.gaurav95998030.habittracker.features.motivation.domain.repository.StarterPlanRepository
+import io.github.gaurav95998030.habittracker.features.motivation.domain.usecases.GetStarterPlansUseCase
+
 @Module
 @InstallIn(ViewModelComponent::class)
 object UseCaseModule {
@@ -92,4 +95,8 @@ object UseCaseModule {
     @Provides
     @ViewModelScoped
     fun provideDeleteStackUseCase(repo: MotivationRepository): DeleteStackUseCase = DeleteStackUseCase(repo)
+
+    @Provides
+    @ViewModelScoped
+    fun provideGetStarterPlansUseCase(repo: StarterPlanRepository): GetStarterPlansUseCase = GetStarterPlansUseCase(repo)
 }

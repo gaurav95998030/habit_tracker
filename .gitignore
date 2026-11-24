@@ -20,3 +20,6 @@ local.properties
 keystore.properties
 app/google-services.json
 
+
+# Android Studio App Quality Insights panel (machine-specific; can reference other apps)
+.idea/appInsightsSettings.xml

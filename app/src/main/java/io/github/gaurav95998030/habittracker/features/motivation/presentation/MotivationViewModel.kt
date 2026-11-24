@@ -13,6 +13,8 @@ import io.github.gaurav95998030.habittracker.features.motivation.domain.model.Mi
 import io.github.gaurav95998030.habittracker.features.motivation.domain.model.MissReason
 import io.github.gaurav95998030.habittracker.features.motivation.domain.model.StackStep
 import io.github.gaurav95998030.habittracker.features.motivation.domain.usecases.DeleteStackUseCase
+import io.github.gaurav95998030.habittracker.features.motivation.domain.usecases.GetStarterPlansUseCase
+import io.github.gaurav95998030.habittracker.features.motivation.domain.model.StarterPlan
 import io.github.gaurav95998030.habittracker.features.motivation.domain.usecases.LogMissUseCase
 import io.github.gaurav95998030.habittracker.features.motivation.domain.usecases.ObserveEnergyUseCase
 import io.github.gaurav95998030.habittracker.features.motivation.domain.usecases.ObserveMissLogsUseCase
@@ -46,6 +48,7 @@ class MotivationViewModel @Inject constructor(
     private val saveStackUseCase: SaveStackUseCase,
     private val deleteStackUseCase: DeleteStackUseCase,
     private val settingsRepository: SettingsRepository,
+    private val getStarterPlans: GetStarterPlansUseCase,
 ) : ViewModel() {
 
     private val today = LocalDate.now()
@@ -63,6 +66,15 @@ class MotivationViewModel @Inject constructor(
 
     val activePlans: StateFlow<Map<String, String>> =
         settingsRepository.activePlans.stateIn(viewModelScope, SharingStarted.Eagerly, emptyMap())
+
+    private val _plans = MutableStateFlow<List<StarterPlan>?>(null)
+
+    /** Starter plans; `null` while loading. Comes from the repository (bundled JSON today, API later). */
+    val plans: StateFlow<List<StarterPlan>?> = _plans.asStateFlow()
+
+    init {
+        viewModelScope.launch { _plans.value = getStarterPlans() }
+    }
 
     private val _missSheetRequested = MutableStateFlow(false)
 

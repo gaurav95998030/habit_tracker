@@ -13,6 +13,12 @@ import io.github.gaurav95998030.habittracker.features.motivation.data.local.Moti
 import io.github.gaurav95998030.habittracker.features.motivation.data.repository.MotivationRepositoryImpl
 import io.github.gaurav95998030.habittracker.features.motivation.domain.repository.MotivationRepository
 
+import android.content.Context
+import dagger.hilt.android.qualifiers.ApplicationContext
+import io.github.gaurav95998030.habittracker.features.motivation.data.plans.AssetStarterPlanDataSource
+import io.github.gaurav95998030.habittracker.features.motivation.data.repository.StarterPlanRepositoryImpl
+import io.github.gaurav95998030.habittracker.features.motivation.domain.repository.StarterPlanRepository
+
 @Module
 @InstallIn(SingletonComponent::class)
 object RepositoryModule {
@@ -28,5 +34,11 @@ object RepositoryModule {
     @Provides
     @Singleton
     fun provideMotivationRepository(dao: MotivationDao): MotivationRepository = MotivationRepositoryImpl(dao)
+
+    /** Bundled plans today; to use an API, pass a remote source first and keep the asset as fallback. */
+    @Provides
+    @Singleton
+    fun provideStarterPlanRepository(@ApplicationContext context: Context): StarterPlanRepository =
+        StarterPlanRepositoryImpl(primary = AssetStarterPlanDataSource(context))
 }
 

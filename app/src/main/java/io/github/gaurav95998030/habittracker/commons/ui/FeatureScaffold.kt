@@ -35,8 +35,15 @@ fun FeatureHeader(title: String, subtitle: String?, onBack: () -> Unit, icon: St
             Text(title, style = AppTheme.textStyles.titleLarge.copy(fontSize = 22.sp, letterSpacing = (-0.4).sp), color = c.textPrimary, maxLines = 1)
             if (subtitle != null) Text(subtitle, style = AppTheme.textStyles.bodySmall, color = c.textTertiary, maxLines = 1)
         }
-        trailing?.invoke()
-        if (icon != null) PhIcon(icon, size = 24.dp, tint = c.primary, weight = PhWeight.Fill)
+        // Actions + decorative icon share one evenly spaced, centred row.
+        Row(
+            Modifier.padding(start = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(12.dp),
+        ) {
+            trailing?.invoke()
+            if (icon != null) PhIcon(icon, size = 24.dp, tint = c.primary, weight = PhWeight.Fill)
+        }
     }
 }
 

@@ -75,6 +75,7 @@ fun AppNavHost(
     val missLogs by motivationViewModel.missLogs.collectAsStateWithLifecycle()
     val energy by motivationViewModel.energy.collectAsStateWithLifecycle()
     val activePlans by motivationViewModel.activePlans.collectAsStateWithLifecycle()
+    val plans by motivationViewModel.plans.collectAsStateWithLifecycle()
 
     NavHost(
         navController = navController,
@@ -132,6 +133,7 @@ fun AppNavHost(
         }
         composable(PLANS_ROUTE) {
             PlansScreen(
+                plans = plans,
                 activePlans = activePlans,
                 onStart = { plan, chosen ->
                     habitViewModel.addHabits(chosen.map { h ->

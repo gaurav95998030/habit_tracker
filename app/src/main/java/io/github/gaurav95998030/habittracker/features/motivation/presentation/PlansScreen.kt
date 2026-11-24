@@ -43,9 +43,8 @@ import io.github.gaurav95998030.habittracker.commons.ui.HfToggle
 import io.github.gaurav95998030.habittracker.commons.ui.PhIcon
 import io.github.gaurav95998030.habittracker.commons.ui.PhIconNamed
 import io.github.gaurav95998030.habittracker.commons.ui.PhWeight
-import io.github.gaurav95998030.habittracker.features.motivation.domain.PlanCatalog
-import io.github.gaurav95998030.habittracker.features.motivation.domain.PlanHabit
-import io.github.gaurav95998030.habittracker.features.motivation.domain.StarterPlan
+import io.github.gaurav95998030.habittracker.features.motivation.domain.model.PlanHabit
+import io.github.gaurav95998030.habittracker.features.motivation.domain.model.StarterPlan
 import io.github.gaurav95998030.habittracker.ui.theme.Accents
 import io.github.gaurav95998030.habittracker.ui.theme.AppShapes
 import io.github.gaurav95998030.habittracker.ui.theme.AppTheme
@@ -63,22 +62,32 @@ import java.time.temporal.ChronoUnit
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun PlansScreen(
+    plans: List<StarterPlan>?,
     activePlans: Map<String, String>,
     onStart: (StarterPlan, List<PlanHabit>) -> Unit,
     onEnd: (StarterPlan) -> Unit,
     onBack: () -> Unit,
 ) {
     val c = AppTheme.colors
-    var selectedId by rememberSaveable { mutableStateOf(PlanCatalog.plans.first().id) }
+    if (plans.isNullOrEmpty()) {
+        FeatureScreen("Starter plans", "Several habits, one tap", onBack, icon = PhIcons.RocketLaunch) {
+            Text(
+                if (plans == null) "Loading plans…" else "No plans available right now.",
+                style = AppTheme.textStyles.bodyMedium, color = c.textSecondary, modifier = Modifier.padding(top = 24.dp),
+            )
+        }
+        return
+    }
+    var selectedId by rememberSaveable { mutableStateOf(plans.first().id) }
     var off by rememberSaveable(selectedId) { mutableStateOf(setOf<String>()) }
-    val plan = PlanCatalog.byId(selectedId) ?: PlanCatalog.plans.first()
+    val plan = plans.firstOrNull { it.id == selectedId } ?: plans.first()
     val color = Accents.colorOf(plan.colorHex)
     val chosen = plan.habits.filter { it.name !in off }
     val started = activePlans[plan.id]?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
 
     FeatureScreen("Starter plans", "Several habits, one tap", onBack, icon = PhIcons.RocketLaunch) {
         LazyRow(Modifier.padding(bottom = 20.dp), horizontalArrangement = Arrangement.spacedBy(10.dp), contentPadding = PaddingValues(vertical = 4.dp)) {
-            items(PlanCatalog.plans, key = { it.id }) { p ->
+            items(plans, key = { it.id }) { p ->
                 val active = p.id == selectedId
                 val pc = Accents.colorOf(p.colorHex)
                 val shape = RoundedCornerShape(AppShapes.card)
